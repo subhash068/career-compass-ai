@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+testing
+RESUME_FEATURE_SUMMARY.md
+TCS_Academic_Project_Description.md
+TODO.md
+test_output.txt
+notes.txt
+ADMIN.TXT
+entity_identification.txt
+er_diagram.txt
+skill_gap
+uncess
+tests
+artifacts
+
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Local Netlify folder
+.netlify

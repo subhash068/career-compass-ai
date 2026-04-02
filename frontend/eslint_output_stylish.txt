@@ -1,0 +1,265 @@
+﻿
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\api\admin.api.ts
+  25:72  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:68  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  77:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\api\axiosClient.ts
+  38:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\api\certificate.api.ts
+  31:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:91  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  66:91  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\api\learning.api.ts
+  10:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\api\profile.api.ts
+   9:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\api\skills.api.ts
+  18:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\auth\AuthContext.tsx
+  24:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  61:6   warning  React Hook useEffect has missing dependencies: 'fetchProfile' and 'token'. Either include them or remove the dependency array   react-hooks/exhaustive-deps
+  72:21  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\Profile.tsx
+  35:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\CareerAnalytics.tsx
+  70:6   warning  React Hook useEffect has a missing dependency: 'fetchCareerStats'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  82:48  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  84:45  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  89:31  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  96:19  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  96:27  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\CareerRecommendationEditor.tsx
+  40:6   warning  React Hook useEffect has a missing dependency: 'fetchCurrentRecommendations'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  50:21  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  86:21  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\DomainSkillsManager.tsx
+   62:6   warning  React Hook useEffect has a missing dependency: 'loadDomains'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  133:21  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  212:21  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  250:21  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\LogViewer.tsx
+   60:6   warning  React Hook useEffect has missing dependencies: 'fetchErrors' and 'fetchLogFiles'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   76:6   warning  React Hook useEffect has missing dependencies: 'fetchErrors' and 'fetchLogFiles'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  118:21  warning  Unexpected any. Specify a different type                                                                                              @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\QuizManager.tsx
+  128:6   warning  React Hook useEffect has a missing dependency: 'fetchQuestions'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  146:21  warning  Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  229:21  warning  Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  285:21  warning  Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  306:21  warning  Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  329:21  warning  Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  372:21  warning  Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\SystemMonitor.tsx
+  82:6  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  95:6  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\UserDetailsModal.tsx
+  21:12  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  22:17  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  23:27  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  24:18  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  43:6   warning  React Hook useEffect has a missing dependency: 'fetchUserDetails'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  53:21  warning  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\UserForm.tsx
+   57:6   warning  React Hook useEffect has a missing dependency: 'fetchUserData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   76:21  warning  Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+  125:21  warning  Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+  150:21  warning  Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\admin\UserManagementTable.tsx
+  64:21  warning  Unexpected any. Specify a different type                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+  69:6   warning  React Hook useCallback has an unnecessary dependency: 'axiosClient'. Either exclude it or remove the dependency array. Outer scope values like 'axiosClient' aren't valid dependencies because mutating them doesn't re-render the component  react-hooks/exhaustive-deps
+  77:6   warning  React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array                                                                                                                                 react-hooks/exhaustive-deps
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\dashboard\Achievements.tsx
+  48:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  94:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  95:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\dashboard\CareerMatches.tsx
+  36:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\dashboard\CompletedAssessments.tsx
+  77:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\dashboard\LearningPathCard.tsx
+   26:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   29:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\dashboard\RecentActivity.tsx
+  63:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\dashboard\SkillProgressChart.tsx
+   22:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   23:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   29:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:65  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\dashboard\SkillsOverview.tsx
+  44:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\dashboard\TopGaps.tsx
+  29:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\ui\badge.tsx
+  45:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\ui\button.tsx
+  49:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\ui\command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\contexts\AppContext.tsx
+   45:54  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   75:60  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  143:33  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  149:51  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  181:74  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  225:55  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  254:33  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  260:51  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  291:40  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  297:51  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  315:53  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  318:44  warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  384:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\contexts\ChatContext.tsx
+  16:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\lib\api.ts
+   5:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\Assistant.tsx
+  46:55   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:106  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:41   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:103  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\Dashboard.tsx
+  46:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\GapAnalysis.tsx
+   57:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   71:75  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  253:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\Learning.tsx
+  126:6   warning  React Hook useEffect has a missing dependency: 'checkForCertificate'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  146:36  warning  Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\Login.tsx
+   52:41  error    Unnecessary escape character: \[          no-useless-escape
+   52:58  error    Unnecessary escape character: \/          no-useless-escape
+  174:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\Register.tsx
+   37:41  error    Unnecessary escape character: \[          no-useless-escape
+   37:58  error    Unnecessary escape character: \/          no-useless-escape
+  107:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  134:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\ResumeBuilder.tsx
+   61:6   warning  React Hook useEffect has a missing dependency: 'loadResume'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  146:76  warning  Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  168:74  warning  Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  218:70  warning  Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\Resumes.tsx
+  42:6  warning  React Hook useEffect has a missing dependency: 'loadResumes'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\Settings.tsx
+  42:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\SkillExam.tsx
+   56:42  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  108:30  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  109:27  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  110:30  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  111:27  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  128:29  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  129:20  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  130:29  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  131:20  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  171:6   warning  React Hook useCallback has a missing dependency: 'submitExam'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  416:6   warning  React Hook useEffect has a missing dependency: 'submitExam'. Either include it or remove the dependency array    react-hooks/exhaustive-deps
+  506:58  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  543:54  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\VerifyCertificate.tsx
+  89:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\admin\AISettings.tsx
+   38:6   warning  React Hook useEffect has a missing dependency: 'loadSettings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  103:21  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  148:21  warning  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\admin\AdminLearningPaths.tsx
+   90:15  warning  Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+   91:26  warning  Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  127:6   warning  React Hook useEffect has a missing dependency: 'fetchLearningPaths'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  194:27  warning  Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  205:27  warning  Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  421:63  warning  Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+
+C:\Users\windows-11\Desktop\career-compass-ai-main\frontend\src\pages\admin\AdminLearningResources.tsx
+  97:6  warning  React Hook useEffect has a missing dependency: 'fetchResources'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+Γ£û 162 problems (5 errors, 157 warnings)
+

@@ -1,0 +1,1056 @@
+import { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
+import { 
+  Plus, 
+  Search, 
+  Upload, 
+  Download, 
+  Edit2, 
+  Trash2, 
+  FileSpreadsheet,
+  AlertCircle,
+  CheckCircle2,
+  X
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useCallback } from 'react';
+import axiosClient from '@/api/axiosClient';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+
+function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  
+  return debouncedValue;
+}
+
+
+interface Question {
+  id: number;
+  skill_id: number;
+  skill_name: string;
+  question_text: string;
+  question_type: string;
+  options: string[];
+  correct_answer: string;
+  difficulty: string;
+  explanation: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Skill {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+interface Domain {
+  id: number;
+  name: string;
+  skills: Skill[];
+}
+
+
+export default function QuizManager() {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [selectedDomainId, setSelectedDomainId] = useState<string>('');
+  const [filteredSkills, setFilteredSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState('');
+  const [domainFilter, setDomainFilter] = useState<string>('all');
+  const [skillFilter, setSkillFilter] = useState<string>('all');
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
+  const [filteredViewSkills, setFilteredViewSkills] = useState<Skill[]>([]);
+  const [sortBy, setSortBy] = useState('newest');
+
+  const debouncedSearch = useDebounce(search, 300);
+
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
+  const limit = 10;
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadSkillId, setUploadSkillId] = useState<string>('none');
+  const [activeTab, setActiveTab] = useState('view');
+
+  // Form state
+  const [formData, setFormData] = useState({
+    skill_id: '',
+    domain_id: '',
+    question_text: '',
+    question_type: 'multiple_choice',
+    options: ['', '', '', ''],
+    correct_answer: '',
+    difficulty: 'medium',
+    explanation: ''
+  });
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, sortBy]);
+
+  useEffect(() => {
+    fetchQuestions();
+    fetchSkills();
+    fetchDomainsWithSkills();
+  }, [debouncedSearch, domainFilter, skillFilter, difficultyFilter, sortBy, page]);
+
+  const fetchQuestions = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      params.append('skip', ((page - 1) * limit).toString());
+      params.append('limit', limit.toString());
+      if (debouncedSearch) params.append('search', debouncedSearch);      if (domainFilter !== 'all') params.append('domain_id', domainFilter);
+      if (skillFilter !== 'all') params.append('skill_id', skillFilter);
+
+      if (difficultyFilter !== 'all') params.append('difficulty', difficultyFilter);
+      params.append('sort_by', sortBy);
+
+      const response = await axiosClient.get(`/admin/quiz/questions?${params.toString()}`);
+
+      setQuestions(response.data.questions);
+      setTotal(response.data.total);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch questions",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSkills = async () => {
+    try {
+      const response = await axiosClient.get('/skills');
+      setSkills(response.data.skills || []);
+    } catch (error) {
+      console.error('Error fetching skills:', error);
+    }
+  };
+
+  const fetchDomainsWithSkills = async () => {
+    try {
+      const response = await axiosClient.get('/admin/quiz/domains-with-skills');
+      setDomains(response.data.domains || []);
+    } catch (error) {
+      console.error('Error fetching domains:', error);
+    }
+  };
+
+  const handleDomainChange = (domainId: string) => {
+    setSelectedDomainId(domainId);
+    setFormData({...formData, domain_id: domainId, skill_id: ''});
+    
+    // Filter skills for selected domain
+    const selectedDomain = domains.find(d => d.id.toString() === domainId);
+    setFilteredSkills(selectedDomain ? selectedDomain.skills : []);
+  };
+
+
+  const handleCreateQuestion = async () => {
+    if (!formData.skill_id) {
+      toast({ title: "Validation Error", description: "Skill is required", variant: "destructive" });
+      return;
+    }
+    
+    const filledOptions = formData.options.filter(opt => opt.trim() !== '');
+    if (formData.question_type === 'multiple_choice' && filledOptions.length < 2) {
+      toast({ title: "Validation Error", description: "Multiple choice questions require at least 2 options", variant: "destructive" });
+      return;
+    }
+    
+    if (!formData.correct_answer.trim()) {
+      toast({ title: "Validation Error", description: "Correct answer is required", variant: "destructive" });
+      return;
+    }
+    
+    if (formData.question_type === 'multiple_choice' && !filledOptions.includes(formData.correct_answer)) {
+      toast({ title: "Validation Error", description: "Correct answer must exactly match one of the provided options", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const data = {
+        ...formData,
+        skill_id: parseInt(formData.skill_id),
+        options: formData.question_type === 'multiple_choice' 
+          ? formData.options.filter(opt => opt.trim() !== '')
+          : formData.question_type === 'true_false' 
+            ? ['True', 'False']
+            : []
+      };
+
+
+      await axiosClient.post('/admin/quiz/questions', data);
+      
+      toast({
+        title: "Success",
+        description: "Question created successfully",
+      });
+      
+      setIsCreateModalOpen(false);
+      resetForm();
+      fetchQuestions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to create question",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateQuestion = async () => {
+    if (!editingQuestion) return;
+
+    if (!formData.skill_id) {
+      toast({ title: "Validation Error", description: "Skill is required", variant: "destructive" });
+      return;
+    }
+    
+    const filledOptions = formData.options.filter(opt => opt.trim() !== '');
+    if (formData.question_type === 'multiple_choice' && filledOptions.length < 2) {
+      toast({ title: "Validation Error", description: "Multiple choice questions require at least 2 options", variant: "destructive" });
+      return;
+    }
+    
+    if (!formData.correct_answer.trim()) {
+      toast({ title: "Validation Error", description: "Correct answer is required", variant: "destructive" });
+      return;
+    }
+    
+    if (formData.question_type === 'multiple_choice' && !filledOptions.includes(formData.correct_answer)) {
+      toast({ title: "Validation Error", description: "Correct answer must exactly match one of the provided options", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const data = {
+        ...formData,
+        skill_id: parseInt(formData.skill_id),
+        options: formData.question_type === 'multiple_choice' 
+          ? formData.options.filter(opt => opt.trim() !== '')
+          : formData.question_type === 'true_false' 
+            ? ['True', 'False']
+            : []
+      };
+
+
+      await axiosClient.put(`/admin/quiz/questions/${editingQuestion.id}`, data);
+      
+      toast({
+        title: "Success",
+        description: "Question updated successfully",
+      });
+      
+      setIsEditModalOpen(false);
+      setEditingQuestion(null);
+      resetForm();
+      fetchQuestions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to update question",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId: number) => {
+    if (!confirm('Are you sure you want to delete this question?')) return;
+
+    try {
+      await axiosClient.delete(`/admin/quiz/questions/${questionId}`);
+      
+      toast({
+        title: "Success",
+        description: "Question deleted successfully",
+      });
+      
+      fetchQuestions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to delete question",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedQuestions.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedQuestions.length} questions?`)) return;
+
+    try {
+      await axiosClient.post('/admin/quiz/questions/bulk-delete', selectedQuestions);
+      
+      toast({
+        title: "Success",
+        description: `${selectedQuestions.length} questions deleted successfully`,
+      });
+      
+      setSelectedQuestions([]);
+      fetchQuestions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.detail || "Failed to delete questions",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!uploadFile) {
+      toast({
+        title: "Error",
+        description: "Please select a file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', uploadFile);
+    if (uploadSkillId && uploadSkillId !== 'none') {
+      formData.append('skill_id', uploadSkillId);
+    }
+
+
+    try {
+      const response = await axiosClient.post('/admin/quiz/upload-excel', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast({
+        title: "Upload Complete",
+        description: `Created ${response.data.created_count} questions. ${response.data.error_count} errors.`,
+      });
+
+      setIsUploadModalOpen(false);
+      setUploadFile(null);
+      setUploadSkillId('none');
+      fetchQuestions();
+
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.response?.data?.detail || "Failed to upload file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadTemplate = async () => {
+    try {
+      const response = await axiosClient.get('/admin/quiz/download-template', {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'question_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download template",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditModal = (question: Question) => {
+    setEditingQuestion(question);
+    
+    // Find the domain for this skill
+    const skillDomain = domains.find(d => 
+      d.skills.some(s => s.id === question.skill_id)
+    );
+    
+    if (skillDomain) {
+      setSelectedDomainId(skillDomain.id.toString());
+      setFilteredSkills(skillDomain.skills);
+    }
+    
+    setFormData({
+      skill_id: question.skill_id.toString(),
+      domain_id: skillDomain ? skillDomain.id.toString() : '',
+      question_text: question.question_text,
+      question_type: question.question_type || 'multiple_choice',
+      options: [...question.options, '', '', '', ''].slice(0, 4),
+      correct_answer: question.correct_answer,
+      difficulty: question.difficulty,
+      explanation: question.explanation || ''
+    });
+    setIsEditModalOpen(true);
+  };
+
+
+  const resetForm = () => {
+    setFormData({
+      skill_id: '',
+      domain_id: '',
+      question_text: '',
+      question_type: 'multiple_choice',
+      options: ['', '', '', ''],
+      correct_answer: '',
+      difficulty: 'medium',
+      explanation: ''
+    });
+    setSelectedDomainId('');
+    setFilteredSkills([]);
+  };
+
+
+
+  const toggleSelectAll = () => {
+    if (selectedQuestions.length === questions.length) {
+      setSelectedQuestions([]);
+    } else {
+      setSelectedQuestions(questions.map(q => q.id));
+    }
+  };
+
+  const toggleSelectQuestion = (questionId: number) => {
+    if (selectedQuestions.includes(questionId)) {
+      setSelectedQuestions(selectedQuestions.filter(id => id !== questionId));
+    } else {
+      setSelectedQuestions([...selectedQuestions, questionId]);
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'bg-green-500/10 text-green-600 border-green-500/20';
+      case 'medium': return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+      case 'hard': return 'bg-red-500/10 text-red-600 border-red-500/20';
+      default: return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+    }
+  };
+
+  const getQuestionTypeColor = (questionType: string) => {
+    switch (questionType) {
+      case 'multiple_choice': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'true_false': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+      case 'short_answer': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+      default: return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+    }
+  };
+
+  const getQuestionTypeLabel = (questionType: string) => {
+    switch (questionType) {
+      case 'multiple_choice': return 'Multiple Choice';
+      case 'true_false': return 'True/False';
+      case 'short_answer': return 'Short Answer';
+      default: return questionType;
+    }
+  };
+
+
+  return (
+    <div className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-lg">
+          <TabsTrigger value="add">Add Questions</TabsTrigger>
+          <TabsTrigger value="view">View Questions</TabsTrigger>
+        </TabsList>
+
+        {/* Add Questions Tab */}
+        <TabsContent value="add" className="space-y-6">
+          <Tabs defaultValue="manual" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2 max-w-md bg-muted/50 p-1 rounded-lg">
+              <TabsTrigger value="manual">Manual</TabsTrigger>
+              <TabsTrigger value="file">File</TabsTrigger>
+            </TabsList>
+
+            {/* Manual Sub-tab */}
+            <TabsContent value="manual" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create New Question</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Domain</Label>
+                    <Select 
+                      value={selectedDomainId} 
+                      onValueChange={handleDomainChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a domain" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {domains.map(domain => (
+                          <SelectItem key={domain.id} value={domain.id.toString()}>
+                            {domain.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Skill</Label>
+                    <Select 
+                      value={formData.skill_id} 
+                      onValueChange={(value) => setFormData({...formData, skill_id: value})}
+                      disabled={!selectedDomainId || filteredSkills.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedDomainId ? "Select a skill" : "Select a domain first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredSkills.map(skill => (
+                          <SelectItem key={skill.id} value={skill.id.toString()}>
+                            {skill.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Question Text</Label>
+                    <Textarea
+                      value={formData.question_text}
+                      onChange={(e) => setFormData({...formData, question_text: e.target.value})}
+                      placeholder="Enter your question..."
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label>Options (one per line)</Label>
+                    {formData.options.map((option, index) => (
+                      <Input
+                        key={index}
+                        value={option}
+                        onChange={(e) => {
+                          const newOptions = [...formData.options];
+                          newOptions[index] = e.target.value;
+                          setFormData({...formData, options: newOptions});
+                        }}
+                        placeholder={`Option ${index + 1}`}
+                        className="mb-2"
+                      />
+                    ))}
+                  </div>
+                  <div>
+                    <Label>Correct Answer</Label>
+                    <Input
+                      value={formData.correct_answer}
+                      onChange={(e) => setFormData({...formData, correct_answer: e.target.value})}
+                      placeholder="Enter the correct answer"
+                    />
+                  </div>
+                  <div>
+                    <Label>Difficulty</Label>
+                    <Select 
+                      value={formData.difficulty} 
+                      onValueChange={(value) => setFormData({...formData, difficulty: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Explanation (Optional)</Label>
+                    <Textarea
+                      value={formData.explanation}
+                      onChange={(e) => setFormData({...formData, explanation: e.target.value})}
+                      placeholder="Explain why this is the correct answer..."
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-4">
+                    <Button onClick={handleCreateQuestion}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Question
+                    </Button>
+                    <Button variant="outline" onClick={resetForm}>
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Form
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* File Sub-tab */}
+            <TabsContent value="file" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upload Questions from File</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <Alert className='bg-yellow-100'>
+                    <AlertCircle className="h-4 w-4 bg-yellow-400 rounded-3xl" />
+                    <AlertDescription>
+                      Upload an Excel file (.xlsx, .xls) or CSV file (.csv) with question data. 
+                      Select a domain and skill, then upload your file.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div>
+                    <Label>Domain</Label>
+                    <Select 
+                      value={selectedDomainId} 
+                      onValueChange={handleDomainChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a domain" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {domains.map(domain => (
+                          <SelectItem key={domain.id} value={domain.id.toString()}>
+                            {domain.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label>Skill</Label>
+                    <Select 
+                      value={uploadSkillId} 
+                      onValueChange={setUploadSkillId}
+                      disabled={!selectedDomainId || filteredSkills.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedDomainId ? "Select a skill" : "Select a domain first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Use skill_id from file</SelectItem>
+                        {filteredSkills.map(skill => (
+                          <SelectItem key={skill.id} value={skill.id.toString()}>
+                            {skill.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label>Upload File</Label>
+                    <Input
+                      className=''
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      ref={fileInputRef}
+                    />
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Supported formats: Excel (.xlsx, .xls) or CSV (.csv)
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button onClick={handleFileUpload} disabled={!uploadFile}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Questions
+                    </Button>
+                    <Button variant="outline" onClick={downloadTemplate}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Template
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+          </Tabs>
+        </TabsContent>
+
+
+        {/* View Questions Tab */}
+        <TabsContent value="view" className="space-y-6">
+          {/* Header Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="flex gap-2">
+              <Button onClick={() => setActiveTab('add')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Question
+              </Button>
+            </div>
+
+            {selectedQuestions.length > 0 && (
+              <Button variant="destructive" onClick={handleBulkDelete}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedQuestions.length})
+              </Button>
+            )}
+          </div>
+
+          {/* Filters */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search questions..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select 
+                  value={domainFilter} 
+                  onValueChange={(value) => {
+                    setDomainFilter(value);
+                    setSkillFilter('all');
+                    setPage(1);
+                    // Filter skills based on selected domain
+                    if (value === 'all') {
+                      setFilteredViewSkills([]);
+                    } else {
+                      const selectedDomain = domains.find(d => d.id.toString() === value);
+                      setFilteredViewSkills(selectedDomain ? selectedDomain.skills : []);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Filter by domain" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Domains</SelectItem>
+                    {domains.map(domain => (
+                      <SelectItem key={domain.id} value={domain.id.toString()}>
+                        {domain.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select 
+                  value={skillFilter} 
+                  onValueChange={(value) => {
+                    setSkillFilter(value);
+                    setPage(1);
+                  }}
+                  disabled={domainFilter === 'all'}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder={domainFilter === 'all' ? "Select domain first" : "Filter by skill"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Skills</SelectItem>
+                    {filteredViewSkills.map(skill => (
+                      <SelectItem key={skill.id} value={skill.id.toString()}>
+                        {skill.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={difficultyFilter} onValueChange={(value) => {
+                    setDifficultyFilter(value);
+                    setPage(1);
+                  }}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Levels</SelectItem>
+                    <SelectItem value="easy">Easy</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortBy} onValueChange={(value) => {
+                    setSortBy(value);
+                  }}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Questions Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Questions ({total})</span>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedQuestions.length === questions.length && questions.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <span className="text-sm font-normal text-muted-foreground">
+                    Select All
+                  </span>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20" />
+                  ))}
+                </div>
+              ) : questions.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>No questions found. Create your first question or upload from Excel.</AlertDescription>
+                </Alert>
+              ) : (
+                <div className="space-y-4">
+                  {questions.map((question) => (
+                    <div
+                      key={question.id}
+                      className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedQuestions.includes(question.id)}
+                        onCheckedChange={() => toggleSelectQuestion(question.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="font-medium mb-2 line-clamp-2" title={question.question_text}>{question.question_text}</p>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <Badge variant="outline" className={getDifficultyColor(question.difficulty)}>
+                                {question.difficulty}
+                              </Badge>
+                              <Badge variant="outline" className={getQuestionTypeColor(question.question_type)}>
+                                {getQuestionTypeLabel(question.question_type)}
+                              </Badge>
+                              <Badge variant="outline">{question.skill_name}</Badge>
+                            </div>
+
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">Options:</span> {question.options.join(', ')}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">Answer:</span> {question.correct_answer}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditModal(question)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteQuestion(question.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Pagination */}
+                  {total > limit && (
+                    <div className="flex justify-between items-center pt-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPage(page - 1)}
+                          disabled={page === 1}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPage(page + 1)}
+                          disabled={page * limit >= total}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+
+      {/* Edit Question Modal */}
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Question</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Domain</Label>
+              <Select 
+                value={selectedDomainId} 
+                onValueChange={handleDomainChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a domain" />
+                </SelectTrigger>
+                <SelectContent>
+                  {domains.map(domain => (
+                    <SelectItem key={domain.id} value={domain.id.toString()}>
+                      {domain.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Skill</Label>
+              <Select 
+                value={formData.skill_id} 
+                onValueChange={(value) => setFormData({...formData, skill_id: value})}
+                disabled={!selectedDomainId || filteredSkills.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedDomainId ? "Select a skill" : "Select a domain first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredSkills.map(skill => (
+                    <SelectItem key={skill.id} value={skill.id.toString()}>
+                      {skill.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Question Text</Label>
+              <Textarea
+                value={formData.question_text}
+                onChange={(e) => setFormData({...formData, question_text: e.target.value})}
+                placeholder="Enter your question..."
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label>Options (one per line)</Label>
+              {formData.options.map((option, index) => (
+                <Input
+                  key={index}
+                  value={option}
+                  onChange={(e) => {
+                    const newOptions = [...formData.options];
+                    newOptions[index] = e.target.value;
+                    setFormData({...formData, options: newOptions});
+                  }}
+                  placeholder={`Option ${index + 1}`}
+                  className="mb-2"
+                />
+              ))}
+            </div>
+            <div>
+              <Label>Correct Answer</Label>
+              <Input
+                value={formData.correct_answer}
+                onChange={(e) => setFormData({...formData, correct_answer: e.target.value})}
+                placeholder="Enter the correct answer"
+              />
+            </div>
+            <div>
+              <Label>Difficulty</Label>
+              <Select 
+                value={formData.difficulty} 
+                onValueChange={(value) => setFormData({...formData, difficulty: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Explanation (Optional)</Label>
+              <Textarea
+                value={formData.explanation}
+                onChange={(e) => setFormData({...formData, explanation: e.target.value})}
+                placeholder="Explain why this is the correct answer..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditModalOpen(false);
+              setEditingQuestion(null);
+              resetForm();
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateQuestion}>Update Question</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

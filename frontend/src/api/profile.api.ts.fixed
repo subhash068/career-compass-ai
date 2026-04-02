@@ -1,0 +1,25 @@
+import apiClient from '@/api/axiosClient';
+import type { ProfileResponse, ProfileUpdate } from '@/types/profile';
+
+export const profileApi = {
+  getProfile: async (): Promise<ProfileResponse> => {
+    const response = await apiClient.get('/api/profile/');
+    return response.data;
+  },
+
+  updateProfile: async (data: ProfileUpdate): Promise<ProfileResponse> => {
+    const response = await apiClient.put('/api/profile/', data);
+    return response.data;
+  },
+
+  createProfile: async (data: ProfileUpdate): Promise<ProfileResponse> => {
+    const response = await apiClient.post('/api/profile/', data);
+    return response.data;
+  },
+
+  deleteProfile: async (): Promise<{ message: string; user_id: number }> => {
+    const response = await apiClient.delete('/api/profile/');
+    return response.data;
+  },
+};
+

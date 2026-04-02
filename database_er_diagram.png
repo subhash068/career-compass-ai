@@ -1,0 +1,82 @@
+# 🗄️ Career Compass AI Database Schema (ER Diagram)
+
+This technical ER diagram illustrates the core entities and their relationships within the application's database.
+
+```mermaid
+erDiagram
+    %% Core Entities
+    Users ||--o{ UserSkills : "possesses"
+    Users ||--o{ SkillAssessments : "takes"
+    Users ||--o{ LearningPaths : "follows"
+    Users ||--o{ ChatSessions : "initiates"
+    Users ||--o{ UserNotes : "records"
+    Users ||--o{ Resumes : "manages"
+    Users ||--o{ Certificates : "holds"
+
+    Domains ||--o{ Skills : "contains"
+    Domains ||--o{ JobRoles : "defines"
+    Domains ||--o{ SkillAssessments : "evaluates"
+
+    JobRoles ||--o{ RoleSkillRequirements : "requires"
+    JobRoles ||--o{ LearningPaths : "target_for"
+
+    Skills ||--o{ UserSkills : "mapped_to"
+    Skills ||--o{ RoleSkillRequirements : "defines_standard"
+
+    LearningPaths ||--o{ LearningPathSteps : "comprises"
+    LearningPathSteps ||--o| LearningResources : "references"
+
+    ChatSessions ||--o{ ChatMessages : "contains"
+
+    %% Key Attributes (Partial for clarity)
+    Users {
+        int id PK
+        string email UK
+        string name
+        string role "admin/user"
+        string password_hash
+    }
+
+    Domains {
+        int id PK
+        string name UK
+    }
+
+    JobRoles {
+        int id PK
+        int domain_id FK
+        string title
+        float demand_score
+    }
+
+    Skills {
+        int id PK
+        int domain_id FK
+        string name
+    }
+
+    LearningPaths {
+        int id PK
+        int user_id FK
+        int target_role_id FK
+        string status
+    }
+
+    SkillAssessments {
+        int id PK
+        int user_id FK
+        int domain_id FK
+        float score
+    }
+```
+
+## Relational Summary
+
+1. **User Core**: The `Users` table is central, linking to personal data like `UserSkills`, `Resumes`, and `LearningPaths`.
+2. **Knowledge Taxonomy**: `Domains` act as categories for both `Skills` and `JobRoles`, providing the structural foundation for the RAG and scoring systems.
+3. **Assessment Logic**: `SkillAssessments` are tied to both a User and a Domain, allowing the AI to calculate gap analysis against `RoleSkillRequirements`.
+4. **Learning Roadmaps**: `LearningPaths` connect a User to a specific `JobRole`, with individual `LearningPathSteps` pointing to curated `LearningResources`.
+
+---
+> [!NOTE]
+> This diagram captures the primary relational logic as defined in the `sqlalchemy` models within the `backend/models/` directory.

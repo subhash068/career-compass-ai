@@ -1,0 +1,9 @@
+﻿python : [Errno 22] Invalid argument: 'backend/**/*.py'
+At line:1 char:1
++ python -m py_compile backend/**/*.py 2>&1 | Out-File -FilePath 
+python ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([Errno 22] Inva...ackend 
+   /**/*.py':String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
