@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "echo \"Backend deployment: skipping root Vite build\"",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start": "python backend/run_backend.py",
     "test": "vitest run",
     "test:watch": "vitest"
   },
