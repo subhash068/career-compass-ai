@@ -69,9 +69,6 @@ echo=os.getenv("SQLALCHEMY_ECHO", "false").lower() == "true",  # Disable verbose
 )
 
 
-
-
-
 # -------------------------
 # Session Factory
 # -------------------------
@@ -113,9 +110,7 @@ class RedisConnection:
         return self._redis_client
 
 
-
 redis_client = RedisConnection()
-
 
 def get_redis():
     return redis_client.connect()

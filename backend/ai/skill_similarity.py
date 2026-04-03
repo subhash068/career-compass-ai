@@ -5,8 +5,6 @@ from ai.config.ai_settings import AISettings
 from ai.evaluation.rag_metrics import RAGMetrics
 
 
-
-
 class SkillSimilarity:
     """
     Handles semantic similarity between skills using embeddings.

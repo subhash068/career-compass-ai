@@ -17,7 +17,7 @@ load_dotenv(override=True)
 
 # Verify environment setup
 print("Environment Configuration:")
-print(f"  ENVIRONMENT: {os.getenv('ENVIRONMENT', 'NOT SET')}")
+print(f"  ENVIRONMENT: {os.getenv('ENVIRONMENT', '')}")
 print(f"  DATABASE_URL_DEV: {os.getenv('DATABASE_URL_DEV', 'NOT SET')}")
 print(f"  JWT_SECRET_KEY: {'SET' if os.getenv('JWT_SECRET_KEY') else 'NOT SET'}")
 
@@ -62,5 +62,16 @@ print("Starting Backend Server...")
 print("="*60 + "\n")
 
 # Start uvicorn
+port = os.getenv("PORT", "8000")
 os.chdir(os.path.join(os.path.dirname(__file__), 'backend'))
-subprocess.run([sys.executable, "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000", "--reload"])
+subprocess.run([
+    sys.executable,
+    "-m",
+    "uvicorn",
+    "app:app",
+    "--host",
+    "0.0.0.0",
+    "--port",
+    str(port),
+    "--reload",
+])

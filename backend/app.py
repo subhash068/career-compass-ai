@@ -86,16 +86,6 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://0.0.0.0:5000",
         "http://localhost:8080",
-        # "http://10.109.91.179:5000",
-        # "http://10.109.91.179:8080",
-    #     "http://10.50.47.101:8080",
-        # "http://192.168.42.1:8080/",
-        # "http://192.168.118.1:8080/",
-        # "http://10.50.47.101:8080/",
-        # "http://10.50.47.101:5000/",
-
-        # "http://192.168.42.1:8080/",
-        # "http://192.168.42.1:5000/",
         # "http://localhost:5173",
         # "http://localhost:8081",
         # "http://127.0.0.1:5000",
@@ -182,4 +172,5 @@ def debug_users(db: Session = Depends(get_db)):
 # -----------------------------
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)
+    port = int(os.getenv("PORT", "5000"))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

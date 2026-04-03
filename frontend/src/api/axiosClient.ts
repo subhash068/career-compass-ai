@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Use environment variable if available, otherwise use nginx proxy path
-// For Docker/Production, use relative path '/api' which nginx will proxy
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+// Use environment variable if available; default to Vite proxy path.
+// In Replit dev, Vite (5000) proxies /api -> backend (8000).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://10.109.91.179:5000";
 
 
