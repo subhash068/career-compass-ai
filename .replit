@@ -1,0 +1,5 @@
+run = "python backend/run_backend.py"
+onBoot = "pip install -r backend/requirements.txt"
+
+[env]
+PYTHONUNBUFFERED = "1"

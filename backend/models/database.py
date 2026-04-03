@@ -1,6 +1,7 @@
 import os
 import redis
 from typing import Generator
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
@@ -10,7 +11,12 @@ from dotenv import load_dotenv
 
 # DATABASE_URL = os.getenv("DATABASE_URL_DEV", "mysql+mysqlconnector://root:kali@localhost/career_compass")
 
-load_dotenv()
+# Load root .env first, then backend/.env as fallback, without overriding
+# already-set environment variables from the host platform.
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = BACKEND_DIR.parent
+load_dotenv(dotenv_path=REPO_ROOT / ".env", override=False)
+load_dotenv(dotenv_path=BACKEND_DIR / ".env", override=False)
 
 # -------------------------
 # Declarative Base
@@ -21,6 +27,10 @@ Base = declarative_base()
 # Database URL (single source of truth)
 # -------------------------
 def get_database_url() -> str:
+    explicit_url = os.getenv("DATABASE_URL")
+    if explicit_url:
+        return explicit_url
+
     env = os.getenv("ENVIRONMENT", "development").lower()
 
     if env == "production":
@@ -93,13 +103,19 @@ class RedisConnection:
     def connect(self):
         if self._redis_client is None:
             try:
+                redis_host = os.getenv("REDIS_HOST", "")
+                if not redis_host:
+                    print("[WARN] REDIS_HOST not set; Redis disabled.")
+                    self._redis_client = None
+                    return self._redis_client
+
                 client = redis.Redis(
-                    host='redis-19426.c239.us-east-1-2.ec2.cloud.redislabs.com',
-                    port=19426,
-                    decode_responses=True,
-                    username="default",
-                    password="8cWErxIfAC2l8PjEAfYLLp339h6Ekv2m",
-                    socket_connect_timeout=5
+                    host=redis_host,
+                    port=int(os.getenv("REDIS_PORT", "6379")),
+                    decode_responses=os.getenv("REDIS_DECODE_RESPONSES", "true").lower() == "true",
+                    username=os.getenv("REDIS_USERNAME"),
+                    password=os.getenv("REDIS_PASSWORD"),
+                    socket_connect_timeout=int(os.getenv("REDIS_CONNECT_TIMEOUT", "5")),
                 )
                 client.ping()
                 self._redis_client = client

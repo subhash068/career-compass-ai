@@ -7,13 +7,19 @@ import os
 import sys
 import subprocess
 
-# Add backend to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+# Resolve project paths from this file location.
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(BACKEND_DIR)
+
+# Add backend to import path
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
 from dotenv import load_dotenv
 
-# Load .env file explicitly
-load_dotenv(override=True)
+# Load backend .env first (primary), then root .env as fallback.
+load_dotenv(dotenv_path=os.path.join(BACKEND_DIR, ".env"), override=True)
+load_dotenv(dotenv_path=os.path.join(REPO_ROOT, ".env"), override=False)
 
 # Verify environment setup
 print("Environment Configuration:")
@@ -63,8 +69,11 @@ print("="*60 + "\n")
 
 # Start uvicorn
 port = os.getenv("PORT", "8000")
-os.chdir(os.path.join(os.path.dirname(__file__), 'backend'))
-subprocess.run([
+environment = os.getenv("ENVIRONMENT", "development").lower()
+reload_default = "false" if environment == "production" else "true"
+reload_enabled = os.getenv("UVICORN_RELOAD", reload_default).lower() == "true"
+os.chdir(BACKEND_DIR)
+uvicorn_cmd = [
     sys.executable,
     "-m",
     "uvicorn",
@@ -73,5 +82,8 @@ subprocess.run([
     "0.0.0.0",
     "--port",
     str(port),
-    "--reload",
-])
+]
+if reload_enabled:
+    uvicorn_cmd.append("--reload")
+
+subprocess.run(uvicorn_cmd)
