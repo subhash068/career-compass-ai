@@ -38,6 +38,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     location.pathname === '/login' || 
     location.pathname === '/register' || 
     location.pathname === '/about' ||
+    location.pathname === '/contact' ||
     location.pathname === '/privacy' ||
     location.pathname === '/terms' ||
     location.pathname === '/cookies' ||

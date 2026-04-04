@@ -40,11 +40,8 @@ const CreativeHeader = ({ navigate }: { navigate: (path: string) => void }) => {
   const navItems = [
     { name: 'Home', path: '/', icon: Compass },
     { name: 'About', path: '/about', icon: Star },
-    { name: 'Contact', path: '#contact', icon: MessageSquare },
+    { name: 'Contact', path: '/contact', icon: MessageSquare },
   ];
-
-
-
 
   const scrollToSection = (path: string) => {
     if (path.startsWith('#')) {
@@ -85,28 +82,14 @@ const CreativeHeader = ({ navigate }: { navigate: (path: string) => void }) => {
             }} 
           />
 
-          {/* Logo Section with Holographic Effect */}
+          {/* Logo Section */}
           <div 
             className="flex items-center gap-3 cursor-pointer group relative"
             onClick={() => navigate('/')}
           >
-            {/* Holographic Background */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-primary/30 via-secondary/30 to-accent/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-all duration-700 animate-pulse" />
-            
-            {/* Logo Container with 3D Effect */}
-            <div className="relative w-12 h-12 perspective-1000">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent rounded-xl transform group-hover:rotate-y-12 group-hover:rotate-x-12 transition-transform duration-500 shadow-lg group-hover:shadow-primary/50" 
-                style={{ transformStyle: 'preserve-3d' }}
-              >
-                {/* Inner Glow */}
-                <div className="absolute inset-1 bg-background rounded-lg flex items-center justify-center overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 animate-pulse" />
-                  <img src="/career-logo.png" alt="Career Compass Logo" className="w-10 h-10 object-contain relative z-10 group-hover:scale-110 transition-transform duration-300" />
-                </div>
-                
-                {/* Floating Particles */}
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full animate-bounce shadow-lg shadow-accent/50" />
-                <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-secondary rounded-full animate-ping" />
+            <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-primary via-secondary to-accent p-[2px] shadow-lg">
+              <div className="h-full w-full bg-background rounded-[10px] flex items-center justify-center">
+                <img src="/career-logo.png" alt="Career Compass Logo" className="w-10 h-10 object-contain" />
               </div>
             </div>
 
@@ -259,11 +242,6 @@ const CreativeHeader = ({ navigate }: { navigate: (path: string) => void }) => {
           </div>
         </div>
       </div>
-
-      {/* Floating Decorative Elements */}
-      <div className="absolute top-full left-10 w-2 h-2 bg-primary/40 rounded-full animate-float" />
-      <div className="absolute top-full right-20 w-3 h-3 bg-secondary/40 rounded-full animate-float delay-500" />
-      <div className="absolute top-full left-1/3 w-2 h-2 bg-accent/40 rounded-full animate-float delay-1000" />
     </header>
   );
 };
@@ -762,18 +740,6 @@ export default function LandingPage() {
           to { transform: rotate(180deg); }
         }
 
-        .perspective-1000 {
-          perspective: 1000px;
-        }
-
-        .rotate-y-12 {
-          transform: rotateY(12deg);
-        }
-
-        .rotate-x-12 {
-          transform: rotateX(12deg);
-        }
-        
         .animate-fade-in-up {
 
           animation: fade-in-up 0.8s ease-out forwards;

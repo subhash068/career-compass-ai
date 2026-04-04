@@ -30,6 +30,7 @@ const LandingPage = React.lazy(() => import("@/pages/LandingPage"));
 const Login = React.lazy(() => import("@/pages/Login"));
 const Register = React.lazy(() => import("@/pages/Register"));
 const About = React.lazy(() => import("@/pages/About"));
+const Contact = React.lazy(() => import("@/pages/Contact"));
 const PrivacyPolicy = React.lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = React.lazy(() => import("@/pages/TermsOfService"));
 const CookiePolicy = React.lazy(() => import("@/pages/CookiePolicy"));
@@ -176,6 +177,7 @@ const App = () => (
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
                         <Route path="/about" element={<About />} />
+                        <Route path="/contact" element={<Contact />} />
                         <Route path="/privacy" element={<PrivacyPolicy />} />
                         <Route path="/terms" element={<TermsOfService />} />
                         <Route path="/cookies" element={<CookiePolicy />} />

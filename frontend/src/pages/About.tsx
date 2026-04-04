@@ -45,7 +45,7 @@ const CreativeHeader = ({ navigate }: { navigate: (path: string) => void }) => {
   const navItems = [
     { name: 'Home', path: '/', icon: Compass },
     { name: 'About', path: '/about', icon: Star },
-    { name: 'Contact', path: '#contact', icon: MessageSquare },
+    { name: 'Contact', path: '/contact', icon: MessageSquare },
   ];
 
   const scrollToSection = (path: string) => {
