@@ -1,6 +1,6 @@
 import sys
 import os
-from fastapi import FastAPI, Depends, Request, Response
+from fastapi import FastAPI, Depends, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
@@ -224,10 +224,28 @@ async def assessment_compat_redirect(path: str, request: Request):
 # -----------------------------
 # Health check
 # -----------------------------
+@app.get("/health")
+def get_health():
+    """
+    Lightweight liveness endpoint for platform health checks (Railway/Render/etc).
+    Must not depend on external services so deploy health checks can pass quickly.
+    """
+    return {"status": "ok"}
+
+
 @app.get("/status")
 def get_status(db: Session = Depends(get_db)):
-    db.execute(text("SELECT 1"))
-    return {"status": "running", "database": "connected"}
+    """
+    Readiness-style status endpoint that includes database connectivity.
+    """
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "running", "database": "connected"}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "degraded", "database": "unavailable", "error": str(exc)},
+        )
 
 
 @app.get("/metrics", include_in_schema=False)
