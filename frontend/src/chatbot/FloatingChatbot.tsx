@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, X } from 'lucide-react';
 import { ChatMessages } from './ChatMessages';
@@ -39,6 +39,7 @@ export function FloatingChatbot() {
           side="right"
           className="w-full sm:w-[400px] p-0 flex flex-col"
         >
+          <SheetTitle className="sr-only">AI Career Assistant</SheetTitle>
           <div className="flex flex-col h-full overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b shrink-0">

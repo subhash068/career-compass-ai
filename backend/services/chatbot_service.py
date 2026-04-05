@@ -55,25 +55,42 @@ class ChatbotService:
         # -------------------------
         # Detect intent
         # -------------------------
-        intent = IntentClassifier.classify_intent(query)
+        intent_result = IntentClassifier.classify_intent(query)
+        if isinstance(intent_result, dict):
+            intent = intent_result.get("intent", "general")
+        else:
+            intent = str(intent_result or "general")
 
         # -------------------------
         # Build user context
         # -------------------------
-        context = ChatbotService._build_user_context(db, user_id)
+        try:
+            context = ChatbotService._build_user_context(db, user_id)
+        except Exception:
+            # Keep chat available even if analytics context fails.
+            context = {
+                "skills_count": 0,
+                "average_skill_score": 0,
+                "top_skills": [],
+                "career_matches": [],
+                "inferred_skills": [],
+                "skill_insights": {},
+                "recent_skills": [],
+            }
 
         # -------------------------
         # Generate response
         # -------------------------
         if intent in {"career", "learning"}:
             if GLOBAL_VECTOR_STORE.index.ntotal == 0:
-                response_text = "I don't have enough verified data yet. Please update your profile."
+                response_text = ChatbotService._fallback_without_vector_store(intent, context)
             else:
-                response_text = RAGService.answer(
+                response_payload = RAGService.answer(
                     query=query,
                     vector_store=GLOBAL_VECTOR_STORE,
                     structured_context=context,
                 )
+                response_text = ChatbotService._to_text_response(response_payload)
         else:
             response_text = ChatbotService._generate_response(
                 intent=intent,
@@ -88,14 +105,17 @@ class ChatbotService:
             session_id=session.id,
             role="user",
             content=query,
-            context=json.dumps({"intent": intent})
+            context=ChatbotService._safe_json_dumps({
+                "intent": intent,
+                "intent_result": intent_result if isinstance(intent_result, dict) else {}
+            })
         )
 
         assistant_message = ChatMessage(
             session_id=session.id,
             role="assistant",
             content=response_text,
-            context=json.dumps(context)
+            context=ChatbotService._safe_json_dumps(context)
         )
 
         db.add(user_message)
@@ -149,13 +169,13 @@ class ChatbotService:
         if intent in {"career", "learning"}:
             # Check if vector store has data
             if GLOBAL_VECTOR_STORE.index.ntotal == 0:
-                return "I don't have enough verified data yet. Please update your profile."
+                return ChatbotService._fallback_without_vector_store(intent, context)
             rag_response = RAGService.answer(
                 query=query,
                 vector_store=GLOBAL_VECTOR_STORE,
                 structured_context=context,
             )
-            return rag_response
+            return ChatbotService._to_text_response(rag_response)
 
         if intent == "skills":
             return ChatbotService._skills_response(context)
@@ -241,6 +261,99 @@ class ChatbotService:
             "I can help with career recommendations, skill analysis, "
             "learning paths, and assessments. What would you like to explore?"
         )
+
+    @staticmethod
+    def _fallback_without_vector_store(intent: str, context: Dict[str, Any]) -> str:
+        if intent == "learning":
+            top_skills = context.get("top_skills", [])[:3]
+            skill_labels = []
+            for item in top_skills:
+                if isinstance(item, dict):
+                    skill_labels.append(
+                        item.get("skill_name")
+                        or item.get("name")
+                        or f"Skill {item.get('skill_id', '')}".strip()
+                    )
+                else:
+                    skill_labels.append(str(item))
+            skill_labels = [s for s in skill_labels if s]
+
+            focus_line = (
+                f"Based on your current profile, start with: {', '.join(skill_labels)}."
+                if skill_labels else
+                "Start with one core technical skill, one project skill, and one communication skill."
+            )
+
+            return (
+                f"{focus_line}\n\n"
+                "Recommended resources:\n"
+                "1. Coursera/edX: structured beginner-to-advanced tracks\n"
+                "2. YouTube + docs: fast concept refresh and practical examples\n"
+                "3. GitHub projects: build one portfolio project per skill\n"
+                "4. LeetCode/HackerRank: weekly practice for problem solving\n\n"
+                "If you share your target role, I can generate a week-by-week learning plan."
+            )
+
+        if intent == "career":
+            matches = context.get("career_matches", []) or []
+            if matches and isinstance(matches[0], dict):
+                top_title = matches[0].get("title") or matches[0].get("role", {}).get("title")
+                score = matches[0].get("match_percentage")
+                if top_title:
+                    score_text = f" ({score:.1f}% match)" if isinstance(score, (int, float)) else ""
+                    return (
+                        f"Your current top career direction is {top_title}{score_text}.\n\n"
+                        "Next steps:\n"
+                        "1. Identify your top 3 skill gaps for this role\n"
+                        "2. Complete one portfolio project mapped to the role\n"
+                        "3. Practice interview questions weekly\n"
+                        "4. Update your resume with measurable outcomes"
+                    )
+
+            return (
+                "I can still guide your career path without indexed documents.\n\n"
+                "Try this quick plan:\n"
+                "1. Choose a target role (e.g., Frontend Developer, Data Analyst)\n"
+                "2. Assess current skills vs required skills\n"
+                "3. Build 2 role-relevant projects\n"
+                "4. Prepare resume and interview answers for that role"
+            )
+
+        return "I can help with learning and career guidance. Tell me your goal and current skill level."
+
+    @staticmethod
+    def _to_text_response(response: Any) -> str:
+        """Normalize mixed chatbot/RAG responses to plain text for storage and UI."""
+        if isinstance(response, str):
+            return response
+        if isinstance(response, dict):
+            answer = response.get("answer")
+            if isinstance(answer, str):
+                return answer
+            try:
+                return ChatbotService._safe_json_dumps(response)
+            except Exception:
+                return str(response)
+        return str(response)
+
+    @staticmethod
+    def _safe_json_dumps(value: Any) -> str:
+        return json.dumps(value, default=ChatbotService._json_default)
+
+    @staticmethod
+    def _json_default(value: Any) -> Any:
+        # Handles numpy, datetime, Decimal, and any custom objects gracefully.
+        if hasattr(value, "item"):
+            try:
+                return value.item()
+            except Exception:
+                pass
+        if hasattr(value, "isoformat"):
+            try:
+                return value.isoformat()
+            except Exception:
+                pass
+        return str(value)
 
     # --------------------------------------------------
     # SESSION MANAGEMENT METHODS (Required by Routes)

@@ -1,9 +1,24 @@
 import axios from 'axios';
 
-// Use environment variable if available; default to Vite proxy path.
-// In Replit dev, Vite (5000) proxies /api -> backend (8000).
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://10.109.91.179:5000";
+const resolveApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // Local frontend often runs on :5000 while backend runs on :8000.
+  // Use direct backend URL so chatbot works even without /api proxy.
+  if (typeof window !== "undefined") {
+    const { hostname, port } = window.location;
+    if ((hostname === "localhost" || hostname === "127.0.0.1") && (port === "5000" || port === "5173")) {
+      return "http://127.0.0.1:8000";
+    }
+  }
+
+  // Default for nginx/deployed setups where /api is reverse-proxied.
+  return "/api";
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 
 

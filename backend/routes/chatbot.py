@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+import traceback
 
 
 from models.database import get_db
@@ -63,6 +64,8 @@ def send_message(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print("[CHATBOT ERROR] /chatbot/message failed")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 

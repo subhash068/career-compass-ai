@@ -39,10 +39,16 @@ export const useChatbot = () => {
       addMessage(assistantMessage);
     } catch (error) {
       console.error('Chat error:', error);
+      const err = error as any;
+      if (err?.response?.data) {
+        console.error('Chat API error detail:', err.response.data);
+      }
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: err?.response?.data?.detail
+          ? `Sorry, chat failed: ${err.response.data.detail}`
+          : 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date(),
       };
       addMessage(errorMessage);
