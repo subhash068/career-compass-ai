@@ -19,6 +19,11 @@ export default defineConfig(({ mode }) => {
           target: backendTarget,
           changeOrigin: true,
           secure: false,
+          // Frontend uses baseURL "/api"; strip it when proxying to backend.
+          // Examples:
+          // - /api/auth/login -> /auth/login
+          // - /api/api/notes -> /api/notes
+          rewrite: (path) => path.replace(/^\/api/, ""),
         },
       },
       allowedHosts: true,

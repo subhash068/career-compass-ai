@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { skillsApi } from '@/api/skills.api.ts';
+import axiosClient from '@/api/axiosClient';
 
 interface Domain {
   id: number;
@@ -45,23 +46,8 @@ export default function SkillSelection() {
   useEffect(() => {
     const loadDomains = async () => {
       try {
-        // For now, we'll use a simple fetch to get domains
-        // This should be replaced with proper API call
-        const response = await fetch('http://localhost:5000/api/domains');
-        if (response.ok) {
-          const domainsData = await response.json();
-          setDomains(domainsData);
-        } else {
-          // Fallback to hardcoded domains if API fails
-          setDomains([
-            { id: 1, name: 'Frontend' },
-            { id: 2, name: 'Backend' },
-            { id: 3, name: 'Full Stack' },
-            { id: 4, name: 'AI / ML' },
-            { id: 5, name: 'DevOps' },
-            { id: 6, name: 'QA Engineer' },
-          ]);
-        }
+        const response = await axiosClient.get('/api/domains');
+        setDomains(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error('Error loading domains:', error);
         // Fallback to hardcoded domains
@@ -90,34 +76,8 @@ export default function SkillSelection() {
 
       setSkillsLoading(true);
       try {
-        const response = await fetch(`http://localhost:5000/skills/${selectedDomain}`);
-
-        if (response.ok) {
-          const skillsData = await response.json();
-          setSkills(skillsData);
-        } else {
-          // Fallback to hardcoded skills based on domain
-          const fallbackSkills: Record<number, Skill[]> = {
-            1: [
-              { id: 1, name: 'HTML' },
-              { id: 2, name: 'CSS' },
-              { id: 3, name: 'JavaScript' },
-              { id: 4, name: 'React' },
-              { id: 5, name: 'Accessibility' },
-              { id: 6, name: 'Performance Optimization' },
-            ],
-            2: [
-              { id: 7, name: 'Python' },
-              { id: 8, name: 'APIs (REST)' },
-              { id: 9, name: 'Databases' },
-              { id: 10, name: 'Authentication & Authorization' },
-              { id: 11, name: 'System Design' },
-              { id: 12, name: 'Security Basics' },
-            ],
-            // Add more domains as needed
-          };
-          setSkills(fallbackSkills[selectedDomain] || []);
-        }
+        const response = await axiosClient.get(`/skills/${selectedDomain}`);
+        setSkills(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error('Error loading skills:', error);
         // Fallback to empty skills
@@ -160,25 +120,11 @@ export default function SkillSelection() {
     try {
       setLoading(true);
 
-      // Initialize assessment with backend
-      const response = await fetch('http://localhost:5000/api/assessment/initialize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-
-        },
-        body: JSON.stringify({
-          domain_id: selectedDomain,
-          skill_ids: Array.from(selectedSkills)
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to initialize assessment');
-      }
-
-      const data = await response.json();
+      const response = await skillsApi.initializeAssessment(
+        selectedDomain!,
+        Array.from(selectedSkills)
+      );
+      const data = response.data;
 
       // Store assessment data
       sessionStorage.setItem('assessmentId', data.assessment_id.toString());

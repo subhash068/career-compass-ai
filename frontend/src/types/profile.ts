@@ -70,9 +70,11 @@ export interface ProfileResponse {
 }
 
 export interface ProfileUpdate {
+  name?: string | null;
   first_name?: string | null;
   last_name?: string | null;
   phone?: string | null;
+  current_role?: string | null;
   location?: string | null;
   experience_years?: number | null;
   bio?: string | null;

@@ -106,8 +106,8 @@ export default function Register() {
 
     } catch (err: any) {
       console.error('Registration error:', err);
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      if (err.response?.data?.detail || err.response?.data?.message) {
+        setError(err.response.data.detail || err.response.data.message);
       } else {
         setError('Registration failed. Please try again.');
       }
@@ -133,8 +133,8 @@ export default function Register() {
       navigate('/login');
     } catch (err: any) {
       console.error('OTP verification error:', err);
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      if (err.response?.data?.detail || err.response?.data?.message) {
+        setError(err.response.data.detail || err.response.data.message);
       } else {
         setError('Invalid or expired verification code.');
       }

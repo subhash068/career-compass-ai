@@ -22,6 +22,12 @@ export interface AuthResponse {
   };
 }
 
+export interface RegisterResponse {
+  message: string;
+  user_id: number;
+  requires_verification: boolean;
+}
+
 export interface ProfileResponse {
   id: number;
   email: string;
@@ -76,8 +82,8 @@ export const authApi = {
     return response.data;
   },
 
-  register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    const response = await axiosClient.post<AuthResponse>('/auth/register', data);
+  register: async (data: RegisterRequest): Promise<RegisterResponse> => {
+    const response = await axiosClient.post<RegisterResponse>('/auth/register', data);
     return response.data;
   },
 

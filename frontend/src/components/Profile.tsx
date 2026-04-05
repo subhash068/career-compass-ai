@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import type { ProfileResponse } from '@/types/profile';
+import { useAuth } from '@/auth/AuthContext';
 
 interface ProfileProps {
   collapsed: boolean;
@@ -20,43 +19,37 @@ export function Profile({ collapsed }: ProfileProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user: authUser, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
+    const hydrateUser = () => {
       try {
-        const response = await api.getProfile(token);
-        const profileData = response.data as any;
-        if (profileData && !profileData.error) {
-          setUser({
-            id: profileData.id?.toString() || '1',
-            email: profileData.email || '',
-            name: profileData.name || profileData.first_name || profileData.email?.split('@')[0] || 'User',
-            role: profileData.role || profileData.currentRole || 'User'
-          });
-        } else {
-          console.warn('Invalid profile response:', profileData);
+        const localUserStr = localStorage.getItem('user');
+        const localUser = localUserStr && localUserStr !== 'undefined' ? JSON.parse(localUserStr) : null;
+        const source = authUser || localUser;
+        if (!source) {
           setUser(null);
+          return;
         }
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
+
+        setUser({
+          id: source.id?.toString() || '1',
+          email: source.email || '',
+          name: source.name || source.first_name || source.email?.split('@')[0] || 'User',
+          role: source.role || source.currentRole || 'User',
+        });
+      } catch {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
-    fetchProfile();
+    if (authLoading) return;
+    hydrateUser();
 
     // Listen for auth changes
     const handleAuthChange = () => {
-      fetchProfile();
+      hydrateUser();
     };
 
     window.addEventListener('authChange', handleAuthChange);
@@ -64,7 +57,7 @@ export function Profile({ collapsed }: ProfileProps) {
     return () => {
       window.removeEventListener('authChange', handleAuthChange);
     };
-  }, []); 
+  }, [authUser, authLoading]); 
 
   const getInitials = (name?: string, email?: string): string => {
     if (!name?.trim()) {

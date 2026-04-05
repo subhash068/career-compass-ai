@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/auth/AuthContext';
-import { authApi, AuthResponse } from '@/api/auth.api';
+import { authApi } from '@/api/auth.api';
 import { LogIn, UserPlus, Check, X, Mail, Shield, Clock, Eye, EyeOff } from 'lucide-react';
 import axiosClient from '@/api/axiosClient';
 
@@ -28,7 +28,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [emailFocused, setEmailFocused] = useState(false);
@@ -37,7 +36,6 @@ export default function Login() {
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
   const [newPasswordFocused, setNewPasswordFocused] = useState(false);
   const [confirmNewPasswordFocused, setConfirmNewPasswordFocused] = useState(false);
-  const [pendingAuth, setPendingAuth] = useState<AuthResponse | null>(null);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -87,14 +85,6 @@ export default function Login() {
     }
   }, [resendTimer]);
 
-  // Resend starts countdown
-  useEffect(() => {
-    if (resendTimer > 0) {
-      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendTimer]);
-
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) return;
 
@@ -136,22 +126,21 @@ export default function Login() {
         }
 
         try {
-          const reg = await authApi.register({ email, name, password });
-          // Save pending auth info until email verification completes
-          setPendingAuth(reg);
-          // Send real OTP via backend
-          await authApi.sendOtp({ email, purpose: 'verify' });
+          await authApi.register({ email, name, password });
           toast({
             title: "Verification Code Sent",
             description: `A 6-digit code has been sent to ${email}.`,
           });
           setMode('verify');
           setResendTimer(30);
-        } catch (err) {
-          setError('Registration failed. Please try again.');
+        } catch (err: any) {
+          const backendMessage =
+            err?.response?.data?.detail ||
+            err?.response?.data?.message ||
+            'Registration failed. Please try again.';
+          setError(backendMessage);
         }
       } else if (mode === 'login') {
-        console.log('Login attempt with email:', email, 'password:', password);
         try {
           // Use AuthContext login to properly update state
           const success = await authLogin(email, password);
@@ -205,21 +194,18 @@ export default function Login() {
 
         try {
           await authApi.verifyOtp({ email, code: otpCode, purpose: 'verify' });
-          // On success, persist tokens/user from register response
-          if (pendingAuth) {
-            localStorage.setItem('authToken', pendingAuth.access_token);
-            if (pendingAuth.refresh_token) {
-              localStorage.setItem('refreshToken', pendingAuth.refresh_token);
-            }
-            localStorage.setItem('user', JSON.stringify(pendingAuth.user));
-          }
           toast({
             title: "Account Verified",
             description: `Welcome to Career Compass, ${name}!`,
           });
-          // Let ProtectedRoute handle redirect
-        } catch (err) {
-          setError('Invalid verification code. Please try again.');
+          setMode('login');
+          setOtp(['', '', '', '', '', '']);
+        } catch (err: any) {
+          const backendMessage =
+            err?.response?.data?.detail ||
+            err?.response?.data?.message ||
+            'Invalid verification code. Please try again.';
+          setError(backendMessage);
         }
       } else if (mode === 'forgotPassword') {
         try {
@@ -230,8 +216,12 @@ export default function Login() {
           });
           setMode('resetPassword');
           setOtp(['', '', '', '', '', '']);
-        } catch (err) {
-          setError('Failed to send reset code. Please try again.');
+        } catch (err: any) {
+          const backendMessage =
+            err?.response?.data?.detail ||
+            err?.response?.data?.message ||
+            'Failed to send reset code. Please try again.';
+          setError(backendMessage);
         }
       } else if (mode === 'resetPassword') {
         const otpCode = otp.join('');
@@ -257,9 +247,21 @@ export default function Login() {
         }
 
         try {
-          // Direct reset endpoint call (backend forgot-password/reset-password)
+          // Verify OTP first to obtain reset_token, then reset password.
+          const verifyResult = await authApi.verifyOtp({
+            email,
+            code: otpCode,
+            purpose: 'reset',
+          });
+          const token = verifyResult.reset_token;
+          if (!token) {
+            setError('Reset token was not generated. Please request a new code.');
+            setIsLoading(false);
+            return;
+          }
+
           const resetData = {
-            reset_token: resetToken,
+            reset_token: token,
             new_password: newPassword
           };
           await axiosClient.post('/auth/reset-password', resetData);

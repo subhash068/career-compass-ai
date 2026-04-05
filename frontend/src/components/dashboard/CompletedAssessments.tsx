@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, Trophy, ArrowRight, Calendar, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axiosClient from '@/api/axiosClient';
 
 
 interface CompletedAssessment {
@@ -24,29 +25,9 @@ export function CompletedAssessments() {
   const fetchCompletedAssessments = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Get token from localStorage (try both possible keys)
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('access_token');
-      
-      if (!token) {
-        console.error('No auth token found in localStorage');
-        setLoading(false);
-        return;
-      }
-      
-      console.log('Fetching completed assessments with token...');
-      
-      // Fetch from API endpoint
-      const response = await fetch('http://localhost:5000/api/assessment/completed', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      console.log('Response status:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
+      try {
+        const response = await axiosClient.get('/api/assessment/completed');
+        const data = response.data;
         console.log('RAW API Response:', JSON.stringify(data, null, 2));
         console.log('Received assessments:', data.assessments?.length || 0);
         if (data.assessments?.length > 0) {
@@ -56,45 +37,28 @@ export function CompletedAssessments() {
         const assessmentsArray = Array.isArray(data.assessments) ? data.assessments : [];
         console.log('Setting assessments array:', assessmentsArray.length);
         setAssessments(assessmentsArray);
-      } else {
-        const errorText = await response.text();
-        console.error('Failed to fetch assessments:', response.status, errorText);
-        
-        // Fallback: try to get from user_skills endpoint
-        const skillsResponse = await fetch('http://localhost:5000/api/skills/user-skills', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (skillsResponse.ok) {
-          const skillsData = await skillsResponse.json();
-          console.log('Fallback - received skills:', skillsData.skills?.length || 0);
-          console.log('Fallback - raw skills data:', JSON.stringify(skillsData, null, 2));
-          
-          // Transform user skills to assessment format
-          const transformedAssessments = (skillsData.skills || [])
-            .filter((skill: any) => {
-              const hasScore = skill.score > 0;
-              console.log(`Skill ${skill.skill_name} (ID: ${skill.skill_id}): score=${skill.score}, hasScore=${hasScore}`);
-              return hasScore;
-            })
-            .map((skill: any) => ({
-              skill_id: skill.skill_id,
-              skill_name: skill.skill_name,
-              score: skill.score,
-              level: skill.level || 'Beginner',
-              confidence: skill.confidence || 0,
-              completed_at: skill.assessed_at || new Date().toISOString()
-            }))
-            .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
-          
-          console.log('Transformed assessments:', transformedAssessments.length);
-          console.log('Transformed data:', JSON.stringify(transformedAssessments, null, 2));
-          setAssessments(transformedAssessments);
-        } else {
-          console.error('Fallback also failed:', skillsResponse.status);
-        }
+      } catch (primaryError) {
+        console.error('Failed to fetch assessments, trying fallback:', primaryError);
+
+        // Fallback: derive completed assessments from user skills endpoint
+        const skillsResponse = await axiosClient.get('/skills/user');
+        const skillsData = skillsResponse.data;
+        const skillsArray = Array.isArray(skillsData) ? skillsData : [];
+        console.log('Fallback - received skills:', skillsArray.length);
+
+        const transformedAssessments = skillsArray
+          .filter((skill: any) => Number(skill.score) > 0)
+          .map((skill: any) => ({
+            skill_id: skill.skill_id,
+            skill_name: skill.skill_name,
+            score: Number(skill.score) || 0,
+            level: skill.level || 'Beginner',
+            confidence: Number(skill.confidence) || 0,
+            completed_at: skill.assessed_at || new Date().toISOString(),
+          }))
+          .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
+
+        setAssessments(transformedAssessments);
       }
     } catch (error) {
       console.error('Error fetching completed assessments:', error);

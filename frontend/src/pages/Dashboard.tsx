@@ -30,6 +30,7 @@ export default function Dashboard() {
 
   const [localLearningPath, setLocalLearningPath] = useState(null);
   const [isLoadingLocalPath, setIsLoadingLocalPath] = useState(false);
+  const [hasAttemptedInitialPathFetch, setHasAttemptedInitialPathFetch] = useState(false);
 
   const learningPath = localLearningPath || contextLearningPath;
 
@@ -52,7 +53,8 @@ export default function Dashboard() {
   // Fetch learning path if not available from context
   useEffect(() => {
     const fetchLearningPath = async () => {
-      if (!learningPath && !isLoadingLearning && !isLoadingLocalPath) {
+      if (!learningPath && !isLoadingLearning && !isLoadingLocalPath && !hasAttemptedInitialPathFetch) {
+        setHasAttemptedInitialPathFetch(true);
         setIsLoadingLocalPath(true);
         try {
           const path = await learningApi.getPath();
@@ -66,7 +68,7 @@ export default function Dashboard() {
     };
 
     fetchLearningPath();
-  }, [learningPath, isLoadingLearning, isLoadingLocalPath]);
+  }, [learningPath, isLoadingLearning, isLoadingLocalPath, hasAttemptedInitialPathFetch]);
 
   const isLoading = isLoadingSkills || isLoadingCareers;
 
@@ -75,6 +77,7 @@ export default function Dashboard() {
       setIsLoadingLocalPath(true);
       const path = await learningApi.getPath();
       setLocalLearningPath(path);
+      setHasAttemptedInitialPathFetch(true);
       // Update context if possible (future enhancement)
       console.log('Learning path refreshed:', path);
     } catch (error) {

@@ -56,9 +56,11 @@ def create_profile_initial(
     result = ProfileService.update_profile(
         db,
         current_user.id,
+        profile_update.name,
         profile_update.first_name,
         profile_update.last_name,
         profile_update.phone,  # Add phone
+        profile_update.current_role,
         profile_update.location,
         profile_update.experience_years,
         profile_update.bio,
@@ -82,9 +84,11 @@ def update_profile(
     result = ProfileService.update_profile(
         db,
         current_user.id,
+        profile_update.name,
         profile_update.first_name,
         profile_update.last_name,
         profile_update.phone,
+        profile_update.current_role,
         profile_update.location,
         profile_update.experience_years,
         profile_update.bio,

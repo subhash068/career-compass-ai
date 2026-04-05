@@ -590,12 +590,12 @@ export default function Learning() {
                       <div>
                         <h5 className="text-sm font-medium mb-2">Recommended Resources</h5>
                         <div className="space-y-2">
-                          {(step.resources || []).map(resource => {
+                          {(step.resources || []).map((resource, resourceIndex) => {
                             const ResourceIcon = resourceIcons[resource.type];
                             const hasUrl = resource.url && resource.url.trim() !== '';
                             return (
                               <div 
-                                key={resource.id}
+                                key={resource.id ?? `${step.id}-resource-${resourceIndex}`}
                                 className={cn(
                                   "flex items-center justify-between p-3 rounded-lg transition-colors",
                                   hasUrl 

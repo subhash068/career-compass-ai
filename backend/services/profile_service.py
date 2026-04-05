@@ -103,9 +103,11 @@ class ProfileService:
     def update_profile(
         db: Session, 
         user_id: int, 
+        name: Optional[str] = None,
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
         phone: Optional[str] = None,
+        current_role: Optional[str] = None,
         location: Optional[str] = None,
         experience_years: Optional[int] = None,
         bio: Optional[str] = None,
@@ -122,6 +124,12 @@ class ProfileService:
             return {"error": "User not found"}
         
         updated = False
+
+        if name is not None:
+            cleaned_name = name.strip()
+            if cleaned_name:
+                user.name = cleaned_name[:255]
+                updated = True
         
         if first_name is not None:
             user.first_name = first_name.strip() if first_name.strip() else None
@@ -136,6 +144,10 @@ class ProfileService:
             if len(phone.strip()) <= 20:
                 user.phone = phone.strip() if phone.strip() else None
                 updated = True
+
+        if current_role is not None:
+            user.current_role = current_role.strip()[:255] if current_role.strip() else ""
+            updated = True
         
         if location is not None:
             user.location = location.strip() if location.strip() else None

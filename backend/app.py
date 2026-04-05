@@ -1,9 +1,9 @@
 import sys
 import os
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -148,6 +148,34 @@ async def get_issuer_well_known():
     # Fallback to dynamic response
     from services.open_badge_service import OpenBadgeService
     return OpenBadgeService.get_well_known_issuer()
+
+
+@app.get("/career-logo.png")
+async def get_career_logo():
+    """Serve logo when requests hit backend origin."""
+    candidates = [
+        os.path.join(backend_dir, "static", "career-logo.png"),
+        os.path.join(os.path.dirname(backend_dir), "frontend", "public", "career-logo.png"),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return FileResponse(path, media_type="image/png")
+    return {"error": "Logo not found"}
+
+
+@app.api_route(
+    "/assessment/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+)
+async def assessment_compat_redirect(path: str, request: Request):
+    """
+    Backward-compat route: some clients hit /assessment/*.
+    Redirect them to the canonical /api/assessment/* routes.
+    """
+    target = f"/api/assessment/{path}"
+    if request.url.query:
+        target = f"{target}?{request.url.query}"
+    return RedirectResponse(url=target, status_code=307)
 
 
 

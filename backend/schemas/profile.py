@@ -3,9 +3,11 @@ from typing import Optional
 from datetime import datetime
 
 class ProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=255)
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
+    current_role: Optional[str] = Field(None, max_length=255)
     location: Optional[str] = Field(None, max_length=200)
     experience_years: Optional[int] = Field(None, ge=0, le=50)
     bio: Optional[str] = Field(None, max_length=1000)

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { User, Phone, Pencil, Award } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
+import { profileApi } from '@/api/profile.api';
 import { certificateApi } from '@/api/certificate.api';
 import type { User as UserType } from '@/types';
 import type { Certificate } from '@/types';
@@ -38,12 +38,11 @@ export default function Profile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        const response = await api.getProfile(token);
-        if (response.data) {
-          setProfile(response.data as UserType);
-        }
+      try {
+        const data = await profileApi.getProfile();
+        setProfile(data as unknown as UserType);
+      } catch (error) {
+        console.error('Error loading profile:', error);
       }
     };
     fetchProfile();
@@ -103,45 +102,25 @@ export default function Profile() {
 
 
   const handleSave = async () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      toast.error('Not authenticated');
-      return;
-    }
+    try {
+      const trimmedName = name.trim();
+      const nameParts = trimmedName.split(/\s+/).filter(Boolean);
+      const first_name = nameParts[0] || null;
+      const last_name = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
 
-    // Build the data object - only include fields that have values
-    const data: { name?: string; phone?: string; current_role?: string } = {};
-    
-    const trimmedName = name.trim();
-    const trimmedPhone = phone.trim();
-    
-    if (trimmedName) {
-      data.name = trimmedName;
-    }
-    if (trimmedPhone) {
-      data.phone = trimmedPhone;
-    }
-    if (currentRole) {
-      data.current_role = currentRole;
-    }
+      const updated = await profileApi.updateProfile({
+        name: trimmedName || null,
+        first_name,
+        last_name,
+        phone: phone.trim() || null,
+        current_role: currentRole || null,
+      });
 
-    console.log('Saving profile with data:', data);
-
-    const response = await api.updateProfile(token, data);
-
-    if (response.error) {
-      toast.error('Failed to update profile: ' + response.error);
-    } else {
       toast.success('Profile saved successfully!');
-      // Update profile state with new values
-      if (profile) {
-        setProfile({
-          ...profile,
-          name,
-          phone: phone || undefined,
-          currentRole,
-        });
-      }
+      setProfile(updated as unknown as UserType);
+      window.dispatchEvent(new Event('authChange'));
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update profile');
     }
   };
 

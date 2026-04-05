@@ -23,6 +23,32 @@ if not JWT_SECRET:
 
 class AuthService:
     @staticmethod
+    def _is_truthy(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        if isinstance(value, (int, float)):
+            return value != 0
+        return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+    @staticmethod
+    def _get_otp_length() -> int:
+        try:
+            length = int(os.getenv("OTP_LENGTH", "6"))
+            return max(4, min(length, 8))
+        except ValueError:
+            return 6
+
+    @staticmethod
+    def _get_otp_expiry_minutes() -> int:
+        try:
+            minutes = int(os.getenv("OTP_EXPIRY_MINUTES", "10"))
+            return max(1, min(minutes, 60))
+        except ValueError:
+            return 10
+
+    @staticmethod
     def validate_email(email: str) -> bool:
         pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         return bool(re.match(pattern, email))
@@ -43,8 +69,16 @@ class AuthService:
 
     @staticmethod
     def _generate_otp() -> str:
-        from random import randint
-        return f"{randint(100000, 999999)}"
+        fixed_code = os.getenv("OTP_FIXED_CODE", "").strip()
+        otp_length = AuthService._get_otp_length()
+
+        # For local/dev testing, allow fixed OTP when explicitly provided.
+        if fixed_code and fixed_code.isdigit():
+            return fixed_code.zfill(otp_length)[-otp_length:]
+
+        import secrets
+        digits = "0123456789"
+        return "".join(secrets.choice(digits) for _ in range(otp_length))
 
     @staticmethod
     def _send_email(to_email: str, subject: str, body: str) -> None:
@@ -78,15 +112,21 @@ class AuthService:
             raise ValueError("User with this email does not exist")
 
         code = AuthService._generate_otp()
-        expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
+        expiry_minutes = AuthService._get_otp_expiry_minutes()
+        expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=expiry_minutes)
         AuthService._otp_store[(purpose, email.lower().strip())] = {"code": code, "expires": expires}
 
         if purpose == "verify":
             subject = "Your Career Compass email verification code"
-            body = f"Hi {user.name},\n\nYour verification code is: {code}\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email."
+            body = f"Hi {user.name},\n\nYour verification code is: {code}\nThis code will expire in {expiry_minutes} minutes.\n\nIf you didn't request this, please ignore this email."
         else:
             subject = "Your Career Compass password reset code"
-            body = f"Hi {user.name},\n\nYour password reset code is: {code}\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email."
+            body = f"Hi {user.name},\n\nYour password reset code is: {code}\nThis code will expire in {expiry_minutes} minutes.\n\nIf you didn't request this, please ignore this email."
+
+        email_disabled = os.getenv("EMAIL_DISABLED", "false").lower() == "true"
+        if email_disabled:
+            print(f"INFO: Email disabled. OTP {code} generated for {email} ({purpose})")
+            return {"message": "OTP sent successfully", "otp": code}
 
         AuthService._send_email(to_email=email, subject=subject, body=body)
         return {"message": "OTP sent successfully"}
@@ -147,7 +187,16 @@ class AuthService:
         if not AuthService.validate_password(password):
             raise ValueError("Password must be at least 8 characters and contain letters and numbers")
 
-        if db.query(User).filter(User.email == email).first():
+        existing_user = db.query(User).filter(User.email == email).first()
+        if existing_user:
+            if not AuthService._is_truthy(existing_user.is_verified):
+                # Allow retrying registration for unverified accounts by re-sending OTP.
+                AuthService._send_verification_otp(db, email, existing_user.name or name)
+                return {
+                    "message": "Account already exists but is not verified. A new verification code has been sent.",
+                    "user_id": existing_user.id,
+                    "requires_verification": True,
+                }
             raise ValueError("User with this email already exists")
 
         user = User(email=email, name=name, role=role, is_verified=False)
@@ -170,7 +219,8 @@ class AuthService:
     def _send_verification_otp(db: Session, email: str, name: str) -> None:
         """Send OTP email for registration verification"""
         code = AuthService._generate_otp()
-        expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)
+        expiry_minutes = AuthService._get_otp_expiry_minutes()
+        expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=expiry_minutes)
         AuthService._otp_store[("verify", email.lower().strip())] = {"code": code, "expires": expires}
 
         # Skip email sending if disabled (dev mode)
@@ -179,7 +229,7 @@ class AuthService:
             return
 
         subject = "Your Career Compass email verification code"
-        body = f"Hi {name},\n\nYour verification code is: {code}\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email."
+        body = f"Hi {name},\n\nYour verification code is: {code}\nThis code will expire in {expiry_minutes} minutes.\n\nIf you didn't request this, please ignore this email."
 
         AuthService._send_email(to_email=email, subject=subject, body=body)
 

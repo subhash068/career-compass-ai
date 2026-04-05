@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
+import axiosClient from '@/api/axiosClient';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,31 +59,12 @@ export default function AssessmentHistory() {
       try {
         setLoading(true);
         setError(null);
-        
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setError('Please login to view your assessment history');
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch from API endpoint
-        const response = await fetch('http://localhost:5000/api/assessment/completed', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
 
-        if (response.ok) {
-          const data = await response.json();
-          setAssessments(data.assessments || []);
-        } else {
-          const errorData = await response.json();
-          setError(errorData.detail || 'Failed to fetch assessments');
-        }
+        const response = await axiosClient.get('/api/assessment/completed');
+        setAssessments(response.data?.assessments || []);
       } catch (error) {
         console.error('Error fetching completed assessments:', error);
-        setError('Network error. Please try again.');
+        setError('Failed to fetch assessments. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -144,37 +126,12 @@ export default function AssessmentHistory() {
 
   const handleDeleteAssessment = async (assessment: CompletedAssessment) => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        toast({
-          title: "Error",
-          description: "Please login to delete assessments",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await fetch(`http://localhost:5000/api/assessment/delete/${assessment.skill_id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      await axiosClient.delete(`/api/assessment/delete/${assessment.skill_id}`);
+      setAssessments(prev => prev.filter(a => a.skill_id !== assessment.skill_id));
+      toast({
+        title: "Success",
+        description: `Assessment for ${assessment.skill_name} has been deleted.`,
       });
-
-      if (response.ok) {
-        setAssessments(prev => prev.filter(a => a.skill_id !== assessment.skill_id));
-        toast({
-          title: "Success",
-          description: `Assessment for ${assessment.skill_name} has been deleted.`,
-        });
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.detail || 'Failed to delete assessment',
-          variant: "destructive",
-        });
-      }
     } catch (error) {
       console.error('Error deleting assessment:', error);
       toast({
@@ -377,7 +334,7 @@ export default function AssessmentHistory() {
       ) : (
         <div className="grid gap-4">
           {assessments.map((assessment, index) => (
-            <Card key={index} className="hover:shadow-md transition-shadow">
+            <Card key={assessment.skill_id} className="hover:shadow-md transition-shadow">
 
 
               <CardContent className="p-6">

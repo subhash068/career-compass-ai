@@ -46,7 +46,7 @@ export function Sidebar() {
   // Get user role from localStorage
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
-  const isAdmin = user?.role?.toLowerCase() === 'ADMIN';
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
 
   const handleLogout = () => {
     try {

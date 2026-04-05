@@ -38,6 +38,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchProfile = async (
+    opts: { silent?: boolean; clearOnAuthError?: boolean } = {}
+  ) => {
+    const { silent = false, clearOnAuthError = true } = opts;
+    try {
+      const profile = await authApi.getProfile();
+      setUser((prev) => ({
+        ...(prev || {}),
+        ...profile,
+      }) as User);
+      localStorage.setItem('user', JSON.stringify(profile));
+    } catch (error: any) {
+      console.error('Profile fetch error:', error);
+      const status = error?.response?.status;
+      if (clearOnAuthError && (status === 401 || status === 404)) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+      }
+    } finally {
+      if (!silent) {
+        setIsLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     const storedToken = localStorage.getItem('authToken');
     const storedUser = localStorage.getItem('user');
@@ -51,42 +79,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Error parsing stored user:', e);
         localStorage.removeItem('user');
       }
-      // Delay profile fetch to avoid race conditions, only if cached user lacks full profile fields
-      setTimeout(() => {
-        if (token) fetchProfile().catch(() => {}); // Silent fail for initial load
-      }, 100);
+
+      // Rehydrate profile after refresh using stored token (avoid stale state closure)
+      fetchProfile({ silent: true }).finally(() => setIsLoading(false));
+    } else if (storedToken) {
+      setToken(storedToken);
+      fetchProfile({ silent: true }).finally(() => setIsLoading(false));
     } else {
       setIsLoading(false);
     }
   }, []);
-
-  const fetchProfile = async (silent = false) => {
-    try {
-      const profile = await authApi.getProfile();
-      // Update user with full profile
-      setUser({
-        ...user,
-        ...profile
-      } as User);
-      localStorage.setItem('user', JSON.stringify(profile));
-    } catch (error: any) {
-      console.error('Profile fetch error:', error);
-      if (error.response?.status === 401 || error.response?.status === 404) {
-        // Token/profile invalid
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
-        if (!silent) {
-          // Optional: try refresh if refreshToken exists
-          // await authApi.refreshToken();
-        }
-      }
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -109,13 +111,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (email: string, name: string, password: string): Promise<boolean> => {
     try {
-      const data: AuthResponse = await authApi.register({ email, name, password });
-      localStorage.setItem('authToken', data.access_token);
-      if (data.refresh_token) {
-        localStorage.setItem('refreshToken', data.refresh_token);
-      }
-      setToken(data.access_token);
-      setUser(data.user);
+      await authApi.register({ email, name, password });
       return true;
     } catch (error) {
       console.error('Register error:', error);
