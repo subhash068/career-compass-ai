@@ -117,10 +117,10 @@ class AuthService:
         AuthService._otp_store[(purpose, email.lower().strip())] = {"code": code, "expires": expires}
 
         if purpose == "verify":
-            subject = "Your Career Compass email verification code"
+            subject = "Your Skill Gap Analysis email verification code"
             body = f"Hi {user.name},\n\nYour verification code is: {code}\nThis code will expire in {expiry_minutes} minutes.\n\nIf you didn't request this, please ignore this email."
         else:
-            subject = "Your Career Compass password reset code"
+            subject = "Your Skill Gap Analysis password reset code"
             body = f"Hi {user.name},\n\nYour password reset code is: {code}\nThis code will expire in {expiry_minutes} minutes.\n\nIf you didn't request this, please ignore this email."
 
         email_disabled = os.getenv("EMAIL_DISABLED", "false").lower() == "true"
