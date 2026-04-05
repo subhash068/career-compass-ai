@@ -1,11 +1,12 @@
 import sys
 import os
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 
 # Add backend directory to sys.path
@@ -63,6 +64,21 @@ app = FastAPI(
     version="1.0.0",
 )
 
+HTTP_REQUESTS_TOTAL = Counter(
+    "http_requests_total",
+    "Total number of HTTP requests",
+    ["method", "endpoint", "status"],
+)
+HTTP_REQUEST_ERRORS_TOTAL = Counter(
+    "http_request_errors_total",
+    "Total number of HTTP requests resulting in server-side errors",
+    ["method", "endpoint"],
+)
+HTTP_REQUESTS_IN_PROGRESS = Gauge(
+    "http_requests_in_progress",
+    "Current number of in-progress HTTP requests",
+)
+
 # print(f"DEBUG: DATABASE_URL = {DATABASE_URL}")
 
 # -----------------------------
@@ -97,6 +113,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    method = request.method
+    endpoint = request.url.path
+    HTTP_REQUESTS_IN_PROGRESS.inc()
+    try:
+        response = await call_next(request)
+        route = request.scope.get("route")
+        if route and hasattr(route, "path"):
+            endpoint = route.path
+        status_code = str(response.status_code)
+        HTTP_REQUESTS_TOTAL.labels(method=method, endpoint=endpoint, status=status_code).inc()
+        if response.status_code >= 500:
+            HTTP_REQUEST_ERRORS_TOTAL.labels(method=method, endpoint=endpoint).inc()
+        return response
+    except Exception:
+        route = request.scope.get("route")
+        if route and hasattr(route, "path"):
+            endpoint = route.path
+        HTTP_REQUESTS_TOTAL.labels(method=method, endpoint=endpoint, status="500").inc()
+        HTTP_REQUEST_ERRORS_TOTAL.labels(method=method, endpoint=endpoint).inc()
+        raise
+    finally:
+        HTTP_REQUESTS_IN_PROGRESS.dec()
 
 # -----------------------------
 # Routers
@@ -187,6 +229,11 @@ def get_status(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"status": "running", "database": "connected"}
 
+
+@app.get("/metrics", include_in_schema=False)
+def get_metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 # -----------------------------
 # Debug users
 # -----------------------------
@@ -200,5 +247,5 @@ def debug_users(db: Session = Depends(get_db)):
 # -----------------------------
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "8000"))
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

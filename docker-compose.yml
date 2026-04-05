@@ -5,12 +5,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: production
-    ports:
-      - "5000:5000"
 
     environment:
-      - MYSQL_URI=mysql+mysqlconnector://root:kali@mysql:3306/career_compass
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=mysql+mysqlconnector://root:kali@mysql:3306/career_compass
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - EMAIL_DISABLED=true
       - SMTP_HOST=${SMTP_HOST}
@@ -87,8 +86,6 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "8080:8080"
-      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl:/etc/nginx/ssl
@@ -100,8 +97,6 @@ services:
 
   frontend:
     build: ./frontend
-    ports:
-      - "8080:8080"
     networks:
       - app-network
 

@@ -3,14 +3,15 @@ services:
   - type: web
     name: career-compass-backend
     env: docker
-    dockerfilePath: ./backend/Dockerfile
-    targetPort: 5000
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    targetPort: 8000
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
         
     # Health check path
-    healthCheckPath: /health
+    healthCheckPath: /status
     
     # Auto-deploy on git push
     autoDeploy: true
@@ -19,10 +20,9 @@ services:
     # plan: starter  # Uncomment for paid tier
     
   # Notes:
-  # 1. Create PostgreSQL database in Render dashboard first
-  # 2. Set DATABASE_URL from DB internal URL
-  # 3. Add API keys: OPENAI_API_KEY, PINECONE_API_KEY, SECRET_KEY
-  # 4. Run migrations: Use Render Shell or cron job with backend/run_migration.py
+  # 1. Provision your database and set DATABASE_URL in Render env vars.
+  # 2. Add required API keys/secrets (e.g., OPENAI_API_KEY, JWT_SECRET_KEY).
+  # 3. Run migrations using backend/run_migration.py in Render shell.
 
 # services:
 #   # Backend FastAPI Service - Native Python (no Docker)
@@ -43,9 +43,7 @@ services:
 #     autoDeploy: true
     
   # Notes:
-  # 1. Create PostgreSQL database in Render dashboard first
-  # 2. Copy internal DB URL to DATABASE_URL env var
-  # 3. Add other keys: OPENAI_API_KEY, PINECONE_API_KEY, SECRET_KEY=CUSTOM_SECRET
-  # 4. Run migrations via Render Shell: cd backend && alembic upgrade head
-  # 5. Backend URL: https://career-compass-backend-xxx.onrender.com
+  # 1. Provision your database and set DATABASE_URL.
+  # 2. Add required API keys/secrets.
+  # 3. Run migrations via Render shell: python run_migration.py
 
