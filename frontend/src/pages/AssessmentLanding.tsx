@@ -7,6 +7,7 @@ import {
   Target, Play, CheckCircle2, Clock, Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { skillsApi } from '@/api/skills.api';
 
 interface Skill {
   id: number;
@@ -44,21 +45,10 @@ export default function AssessmentLanding() {
           setSkills(loadedSkills);
         } else {
           // Fallback: fetch from API
-          const response = await fetch(`http://localhost:5000/api/assessment/selected-skills?assessment_id=${assessmentId}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            loadedSkills = data.skills;
-            setSkills(loadedSkills);
-            sessionStorage.setItem('selectedSkills', JSON.stringify(data.skills));
-          } else {
-            throw new Error('Failed to load skills');
-          }
+          const response = await skillsApi.getSelectedSkills(Number(assessmentId));
+          loadedSkills = response.data.skills;
+          setSkills(loadedSkills);
+          sessionStorage.setItem('selectedSkills', JSON.stringify(response.data.skills));
         }
 
         // Store pending skills in localStorage for exam navigation

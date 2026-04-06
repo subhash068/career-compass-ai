@@ -346,21 +346,8 @@ export default function SkillExam() {
         console.log('DEBUG: User:', user);
 
         // Load quiz from new API
-        const response = await fetch(`http://localhost:5000/api/assessment/start/${currentSkillId}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-
-          }
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`API Error ${response.status}:`, errorText);
-          throw new Error(`Failed to load quiz: ${response.status} - ${errorText}`);
-        }
-
-
-        const data = await response.json();
+        const response = await skillsApi.startSkillQuiz(currentSkillId);
+        const data = response.data;
 
         setQuestions(data.questions);
         setTimeLeft(data.time_limit);

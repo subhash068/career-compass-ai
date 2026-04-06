@@ -82,17 +82,18 @@ HTTP_REQUESTS_IN_PROGRESS = Gauge(
 # print(f"DEBUG: DATABASE_URL = {DATABASE_URL}")
 
 # -----------------------------
-# CORS middleware (CORRECT)
+# CORS helpers
 # -----------------------------
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+def _parse_env_list(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [item.strip().rstrip("/") for item in value.split(",") if item.strip()]
+
+
+def _build_cors_origins() -> list[str]:
+    static_origins = [
         "http://localhost:8080",
         "https://localhost:8080",
-        "https://*.vercel.app",
-        "https://*.onrender.com",
-        # Development origins - remove wildcard for credentials
-        "http://localhost:8080",
         "http://localhost:8081",
         "http://localhost:5000",
         "http://localhost:3000",
@@ -101,14 +102,25 @@ app.add_middleware(
         "http://127.0.0.1:5000",
         "http://127.0.0.1:5173",
         "http://0.0.0.0:5000",
-        "http://localhost:8080",
-        # "http://localhost:5173",
-        # "http://localhost:8081",
-        # "http://127.0.0.1:5000",
-        # "http://127.0.0.1:5173",
-        # "http://127.0.0.1:8080",
-        # "http://127.0.0.1:8081",
-    ],
+    ]
+    env_origins = []
+    env_origins.extend(_parse_env_list(os.getenv("CORS_ORIGINS")))
+    env_origins.extend(_parse_env_list(os.getenv("FRONTEND_URL")))
+    env_origins.extend(_parse_env_list(os.getenv("FRONTEND_ORIGIN")))
+
+    # Keep order stable while removing duplicates.
+    return list(dict.fromkeys([*static_origins, *env_origins]))
+
+
+CORS_ORIGINS = _build_cors_origins()
+
+# -----------------------------
+# CORS middleware (CORRECT)
+# -----------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_origin_regex=r"^https:\/\/([a-zA-Z0-9-]+\.)*(vercel\.app|onrender\.com|netlify\.app)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

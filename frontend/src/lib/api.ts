@@ -1,5 +1,6 @@
 // Use relative path for nginx proxy, or full URL for direct access
-const API_BASE_URL ="http://localhost:5000";
+//const API_BASE_URL ="http://localhost:5000";
+const API_BASE_URL ="https://career-compass-backend-production-162c.up.railway.app";
 // const API_BASE_URL ="http://10.109.91.179:5000";
 
 interface ApiResponse<T = any> {

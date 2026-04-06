@@ -112,28 +112,20 @@ export default function Results() {
 
         for (const skill of selectedSkills) {
           try {
-            const response = await fetch(`http://localhost:5000/api/assessment/result/${skill.id}`, {
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            const response = await skillsApi.getAssessmentResult(skill.id);
+            const skillResult = response.data;
+            skillResults[skill.name] = {
+              score: skillResult.score,
+              percentage: skillResult.percentage,
+              level: skillResult.level,
+              gap: skillResult.confidence < 50 ? 'High' : skillResult.confidence < 70 ? 'Medium' : 'Low',
+              correct_answers: Math.round((skillResult.percentage / 100) * 10), // Assuming 10 questions
+              total_questions: 10
+            };
 
-              }
-            });
-
-            if (response.ok) {
-              const skillResult = await response.json();
-              skillResults[skill.name] = {
-                score: skillResult.score,
-                percentage: skillResult.percentage,
-                level: skillResult.level,
-                gap: skillResult.confidence < 50 ? 'High' : skillResult.confidence < 70 ? 'Medium' : 'Low',
-                correct_answers: Math.round((skillResult.percentage / 100) * 10), // Assuming 10 questions
-                total_questions: 10
-              };
-
-              totalScore += skillResult.percentage;
-              totalCorrect += Math.round((skillResult.percentage / 100) * 10);
-              totalQuestions += 10;
-            }
+            totalScore += skillResult.percentage;
+            totalCorrect += Math.round((skillResult.percentage / 100) * 10);
+            totalQuestions += 10;
           } catch (e) {
             console.log(`Could not get result for ${skill.name}:`, e);
           }
