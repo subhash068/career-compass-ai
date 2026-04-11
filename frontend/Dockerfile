@@ -10,9 +10,9 @@ RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.template.conf /etc/nginx/nginx.template.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "sed -i 's/8080/${PORT:-8080}/g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;' && tail -f /dev/null"]
+CMD ["sh", "-c", "apk add --no-cache gettext && envsubst < /etc/nginx/nginx.template.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
