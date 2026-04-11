@@ -10,6 +10,8 @@ RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
 
+ENV PORT=80
+
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
