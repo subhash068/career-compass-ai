@@ -2,19 +2,21 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+ENV VITE_API_BASE_URL=https://career-compass-backend-production-162c.up.railway.app
+
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
 RUN npm run build
 
-FROM nginx:1.27-alpine AS runtime
+FROM node:20-alpine AS runtime
 
-ENV PORT=80
+WORKDIR /app
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist ./dist
+COPY server.js .
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server.js"]
