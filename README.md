@@ -1,4 +1,4 @@
-# Career Compass AI
+# A Multi-Layered Skill Gap Analysis and Career Recommendation System
 
 AI-powered career guidance and skill analysis platform with assessments, learning paths, resume analysis, certificates, and an admin operations panel.
 

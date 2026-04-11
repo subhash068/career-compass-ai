@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 from collections import defaultdict, deque
 from datetime import datetime
+from urllib.parse import quote_plus
 import numpy as np
 import random
 
@@ -55,7 +56,7 @@ class LearningService:
                 
                 if step_count > 0:
                     # Return existing path with steps
-                    return existing.to_dict()
+                    return LearningService._serialize_learning_path_with_resources(db, existing)
                 else:
                     # Delete empty path and create new one
                     db.delete(existing)
@@ -212,6 +213,13 @@ class LearningService:
                     target_level,
                     gap
                 )
+                step_resources = LearningService._get_step_resources(
+                    db=db,
+                    skill_id=skill_id,
+                    skill_name=skill_name,
+                    target_level=target_level,
+                    limit=3,
+                )
 
                 step = LearningPathStep(
                     skill_id=skill_id,
@@ -220,7 +228,7 @@ class LearningService:
                     estimated_duration=f"{weeks} weeks",
                     is_completed=False,
                 )
-                step.set_resources([])
+                step.set_resources(step_resources)
                 step.set_dependencies([])
                 
                 # Try to set assessment questions, but handle if column doesn't exist
@@ -260,7 +268,7 @@ class LearningService:
             db.commit()
             db.refresh(path)
 
-            return path.to_dict()
+            return LearningService._serialize_learning_path_with_resources(db, path)
 
         except Exception as e:
             db.rollback()
@@ -268,6 +276,376 @@ class LearningService:
             import traceback
             traceback.print_exc()
             raise
+
+    # --------------------------------------------------
+    # SERIALIZE PATH WITH HELPFUL RESOURCES
+    # --------------------------------------------------
+    @staticmethod
+    def _serialize_learning_path_with_resources(db: Session, path: LearningPath) -> Dict[str, Any]:
+        """
+        Serialize a learning path and ensure each step has helpful links.
+        """
+        path_dict = path.to_dict()
+        steps = path_dict.get("steps") or []
+
+        for step in steps:
+            LearningService._enrich_step_resources(db, step)
+
+        return path_dict
+
+    @staticmethod
+    def _enrich_step_resources(db: Session, step: Dict[str, Any], limit: int = 3) -> None:
+        """
+        Ensure a serialized step has a usable resource list.
+        """
+        skill = step.get("skill") or {}
+        skill_id = step.get("skill_id") or step.get("skillId") or skill.get("id")
+        skill_name = (
+            skill.get("name")
+            or step.get("skill_name")
+            or step.get("skillName")
+            or f"Skill {skill_id}"
+        )
+        target_level = step.get("target_level") or step.get("targetLevel") or "beginner"
+        existing_resources = step.get("resources") or []
+
+        step["resources"] = LearningService._get_step_resources(
+            db=db,
+            skill_id=skill_id,
+            skill_name=skill_name,
+            target_level=target_level,
+            existing_resources=existing_resources,
+            limit=limit,
+        )
+
+    @staticmethod
+    def _get_step_resources(
+        db: Session,
+        skill_id: int | None,
+        skill_name: str,
+        target_level: str,
+        existing_resources: List[Dict[str, Any]] | None = None,
+        limit: int = 3,
+    ) -> List[Dict[str, Any]]:
+        """
+        Return a ranked resource list for a step.
+        Prefer any stored resources, then fall back to curated learning links.
+        """
+        merged_resources: List[Dict[str, Any]] = []
+        seen_keys = set()
+
+        def has_real_url(resource: Dict[str, Any]) -> bool:
+            url = str(resource.get("url") or "").strip()
+            return bool(url) and url != "#" and url.lower().startswith(("http://", "https://"))
+
+        def add_resource(resource: Dict[str, Any]) -> None:
+            url = str(resource.get("url") or "").strip()
+            key = url.lower() if url else f"id:{resource.get('id')}"
+            if not key or key in seen_keys:
+                return
+            seen_keys.add(key)
+            merged_resources.append(resource)
+
+        for resource in existing_resources or []:
+            if isinstance(resource, dict) and has_real_url(resource):
+                add_resource(resource)
+                if len(merged_resources) >= limit:
+                    return merged_resources[:limit]
+
+        if skill_id:
+            stored_resources = db.query(LearningResource).filter(
+                LearningResource.skill_id == skill_id
+            ).all()
+            ranked_resources = LearningService._rank_resource_candidates(
+                [resource.to_dict() for resource in stored_resources if resource.url and str(resource.url).strip().lower().startswith(("http://", "https://"))],
+                target_level,
+            )
+
+            for resource in ranked_resources:
+                add_resource(resource)
+                if len(merged_resources) >= limit:
+                    return merged_resources[:limit]
+
+        fallback_resources = LearningService._fallback_resources_for_skill(
+            skill_id=skill_id or 0,
+            skill_name=skill_name,
+            target_level=target_level,
+        )
+        for resource in fallback_resources:
+            add_resource(resource)
+            if len(merged_resources) >= limit:
+                return merged_resources[:limit]
+
+        if merged_resources:
+            return merged_resources[:limit]
+
+        return (existing_resources or [])[:limit]
+
+    @staticmethod
+    def _rank_resource_candidates(
+        resources: List[Dict[str, Any]],
+        target_level: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        Rank resources by difficulty fit, rating, and cost.
+        """
+        target_score = LearningService._level_to_score(target_level) if target_level else 50
+
+        def score(resource: Dict[str, Any]) -> float:
+            difficulty_value = LearningService._level_to_score(str(resource.get("difficulty") or "beginner"))
+            difficulty_match = max(0.0, 1 - abs(difficulty_value - target_score) / 75)
+
+            try:
+                rating_value = float(resource.get("rating") or 0)
+            except (TypeError, ValueError):
+                rating_value = 0.0
+            rating_score = max(0.0, min(rating_value, 5.0)) / 5.0
+
+            cost_bonus = 0.1 if str(resource.get("cost") or "").lower() == "free" else 0.0
+
+            return (rating_score * 0.6) + (difficulty_match * 0.3) + cost_bonus
+
+        return sorted(resources, key=score, reverse=True)
+
+    @staticmethod
+    def _build_resource(
+        skill_id: int,
+        index: int,
+        title: str,
+        resource_type: str,
+        provider: str,
+        url: str,
+        duration: str,
+        difficulty: str,
+        rating: float,
+        cost: str,
+    ) -> Dict[str, Any]:
+        """
+        Build a stable resource payload for fallback links.
+        """
+        base_id = skill_id or 0
+        resource_id = -((base_id * 10) + index + 1)
+
+        return {
+            "id": resource_id,
+            "skill_id": skill_id,
+            "title": title,
+            "type": resource_type,
+            "provider": provider,
+            "url": url,
+            "duration": duration,
+            "difficulty": difficulty,
+            "rating": rating,
+            "cost": cost,
+        }
+
+    @staticmethod
+    def _fallback_resources_for_skill(
+        skill_id: int,
+        skill_name: str,
+        target_level: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        Return curated fallback learning links when the database has no resources.
+        """
+        skill_key = (skill_name or "").lower()
+        normalized_level = target_level if target_level in {"beginner", "intermediate", "advanced", "expert"} else "beginner"
+
+        resource_groups = [
+            (
+                lambda key: "react" in key,
+                [
+                    ("React docs", "tutorial", "React", "https://react.dev/learn", "8 hours", "beginner", 4.9, "free"),
+                    ("React reference", "book", "React", "https://react.dev/reference/react", "4 hours", "intermediate", 4.8, "free"),
+                ],
+            ),
+            (
+                lambda key: "javascript" in key,
+                [
+                    ("MDN JavaScript Guide", "tutorial", "MDN", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide", "6 hours", "beginner", 4.9, "free"),
+                    ("JavaScript.info", "book", "JavaScript.info", "https://javascript.info/", "8 hours", "intermediate", 4.8, "free"),
+                ],
+            ),
+            (
+                lambda key: "accessibility" in key,
+                [
+                    ("W3C Accessibility Introduction", "tutorial", "W3C", "https://www.w3.org/WAI/fundamentals/accessibility-intro/", "4 hours", "beginner", 4.8, "free"),
+                    ("web.dev accessibility", "tutorial", "Google web.dev", "https://web.dev/learn/accessibility/", "6 hours", "beginner", 4.8, "free"),
+                ],
+            ),
+            (
+                lambda key: "performance" in key,
+                [
+                    ("web.dev performance", "tutorial", "Google web.dev", "https://web.dev/learn/performance/", "6 hours", "beginner", 4.8, "free"),
+                    ("MDN Performance", "book", "MDN", "https://developer.mozilla.org/en-US/docs/Web/Performance", "5 hours", "intermediate", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: any(token in key for token in ("html", "css", "frontend")),
+                [
+                    ("MDN Learn Web Development", "tutorial", "MDN", "https://developer.mozilla.org/en-US/docs/Learn", "10 hours", "beginner", 4.9, "free"),
+                    ("web.dev learning path", "tutorial", "Google web.dev", "https://web.dev/learn/", "6 hours", "beginner", 4.8, "free"),
+                ],
+            ),
+            (
+                lambda key: "python" in key,
+                [
+                    ("Python Tutorial", "book", "Python.org", "https://docs.python.org/3/tutorial/", "8 hours", "beginner", 4.9, "free"),
+                    ("Python Standard Library", "book", "Python.org", "https://docs.python.org/3/library/", "8 hours", "intermediate", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: any(token in key for token in ("api", "rest", "integration")),
+                [
+                    ("MDN HTTP overview", "tutorial", "MDN", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview", "5 hours", "beginner", 4.8, "free"),
+                    ("Postman API learning center", "tutorial", "Postman", "https://www.postman.com/api-platform/api-learning/", "6 hours", "beginner", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: any(token in key for token in ("database", "databases", "sql")),
+                [
+                    ("PostgreSQL tutorial", "book", "PostgreSQL", "https://www.postgresql.org/docs/current/tutorial.html", "6 hours", "beginner", 4.8, "free"),
+                    ("SQLBolt interactive lessons", "tutorial", "SQLBolt", "https://sqlbolt.com/", "4 hours", "beginner", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: any(token in key for token in ("auth", "security", "authorization", "authentication")),
+                [
+                    ("OWASP Top 10", "tutorial", "OWASP", "https://owasp.org/www-project-top-ten/", "4 hours", "intermediate", 4.9, "free"),
+                    ("OWASP Authentication Cheat Sheet", "book", "OWASP", "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html", "4 hours", "intermediate", 4.8, "free"),
+                ],
+            ),
+            (
+                lambda key: any(token in key for token in ("backend", "system design", "node.js", "nodejs")),
+                [
+                    ("FastAPI tutorial", "tutorial", "FastAPI", "https://fastapi.tiangolo.com/tutorial/", "6 hours", "beginner", 4.8, "free"),
+                    ("System Design Primer", "book", "GitHub", "https://github.com/donnemartin/system-design-primer", "12 hours", "advanced", 4.9, "free"),
+                ],
+            ),
+            (
+                lambda key: "git" in key,
+                [
+                    ("Pro Git book", "book", "Git", "https://git-scm.com/book/en/v2", "6 hours", "beginner", 4.9, "free"),
+                    ("GitHub: About Git", "tutorial", "GitHub", "https://docs.github.com/en/get-started/using-git/about-git", "4 hours", "beginner", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: "linux" in key,
+                [
+                    ("Linux Journey", "tutorial", "Linux Journey", "https://linuxjourney.com/", "6 hours", "beginner", 4.8, "free"),
+                    ("Bash Reference Manual", "book", "GNU", "https://www.gnu.org/software/bash/manual/", "8 hours", "intermediate", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: "ci/cd" in key or "cicd" in key or "continuous integration" in key,
+                [
+                    ("GitHub Actions docs", "tutorial", "GitHub", "https://docs.github.com/en/actions", "5 hours", "beginner", 4.8, "free"),
+                    ("Jenkins documentation", "tutorial", "Jenkins", "https://www.jenkins.io/doc/", "6 hours", "intermediate", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: "docker" in key,
+                [
+                    ("Docker getting started", "tutorial", "Docker", "https://docs.docker.com/get-started/", "5 hours", "beginner", 4.8, "free"),
+                    ("Docker Compose overview", "tutorial", "Docker", "https://docs.docker.com/compose/", "4 hours", "intermediate", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: "kubernetes" in key,
+                [
+                    ("Kubernetes basics", "tutorial", "Kubernetes", "https://kubernetes.io/docs/tutorials/kubernetes-basics/", "8 hours", "beginner", 4.8, "free"),
+                    ("Kubernetes docs", "book", "Kubernetes", "https://kubernetes.io/docs/home/", "10 hours", "intermediate", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: "cloud" in key,
+                [
+                    ("AWS overview", "tutorial", "AWS", "https://docs.aws.amazon.com/whitepapers/latest/aws-overview/introduction.html", "6 hours", "beginner", 4.7, "free"),
+                    ("AWS Skill Builder", "course", "AWS", "https://explore.skillbuilder.aws/", "6 hours", "beginner", 4.6, "free"),
+                ],
+            ),
+            (
+                lambda key: "deployment" in key,
+                [
+                    ("Vercel docs", "tutorial", "Vercel", "https://vercel.com/docs", "4 hours", "beginner", 4.7, "free"),
+                    ("GitHub Actions deployment", "tutorial", "GitHub", "https://docs.github.com/en/actions", "5 hours", "beginner", 4.8, "free"),
+                ],
+            ),
+            (
+                lambda key: any(token in key for token in ("machine learning", "data preprocessing", "model evaluation")),
+                [
+                    ("Google ML Crash Course", "course", "Google", "https://developers.google.com/machine-learning/crash-course", "8 hours", "beginner", 4.9, "free"),
+                    ("scikit-learn user guide", "book", "scikit-learn", "https://scikit-learn.org/stable/user_guide.html", "8 hours", "intermediate", 4.8, "free"),
+                ],
+            ),
+            (
+                lambda key: "statistics" in key,
+                [
+                    ("Khan Academy statistics", "course", "Khan Academy", "https://www.khanacademy.org/math/statistics-probability", "6 hours", "beginner", 4.8, "free"),
+                    ("OpenIntro Statistics", "book", "OpenIntro", "https://www.openintro.org/book/os/", "8 hours", "intermediate", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: any(token in key for token in ("manual testing", "automation testing", "selenium", "api testing", "bug tracking", "test case")),
+                [
+                    ("Playwright docs", "tutorial", "Playwright", "https://playwright.dev/docs/intro", "6 hours", "beginner", 4.8, "free"),
+                    ("Selenium documentation", "tutorial", "Selenium", "https://www.selenium.dev/documentation/", "8 hours", "beginner", 4.7, "free"),
+                ],
+            ),
+            (
+                lambda key: "power bi" in key,
+                [
+                    ("Microsoft Learn Power BI", "course", "Microsoft", "https://learn.microsoft.com/en-us/training/powerplatform/power-bi/", "6 hours", "beginner", 4.8, "free"),
+                    ("Power BI documentation", "tutorial", "Microsoft", "https://learn.microsoft.com/en-us/power-bi/", "6 hours", "intermediate", 4.7, "free"),
+                ],
+            ),
+        ]
+
+        for matcher, items in resource_groups:
+            if matcher(skill_key):
+                return [
+                    LearningService._build_resource(
+                        skill_id=skill_id,
+                        index=index,
+                        title=title,
+                        resource_type=resource_type,
+                        provider=provider,
+                        url=url,
+                        duration=duration,
+                        difficulty=difficulty,
+                        rating=rating,
+                        cost=cost,
+                    )
+                    for index, (title, resource_type, provider, url, duration, difficulty, rating, cost) in enumerate(items)
+                ]
+
+        search_term = quote_plus(f"{skill_name} learning resources")
+        return [
+            LearningService._build_resource(
+                skill_id=skill_id,
+                index=0,
+                title=f"{skill_name} official documentation search",
+                resource_type="tutorial",
+                provider="Search",
+                url=f"https://www.google.com/search?q={search_term}",
+                duration="2 hours",
+                difficulty=normalized_level,
+                rating=4.3,
+                cost="free",
+            ),
+            LearningService._build_resource(
+                skill_id=skill_id,
+                index=1,
+                title=f"{skill_name} guided tutorial search",
+                resource_type="tutorial",
+                provider="Search",
+                url=f"https://www.google.com/search?q={quote_plus(f'{skill_name} tutorial')}",
+                duration="3 hours",
+                difficulty=normalized_level,
+                rating=4.1,
+                cost="free",
+            ),
+        ]
 
     # --------------------------------------------------
     # CHECK STEP COMPLETION ELIGIBILITY
@@ -641,7 +1019,8 @@ class LearningService:
     def rank_learning_resources(
         db: Session,
         skill_id: int,
-        user_id: int
+        user_id: int,
+        target_level: str = "beginner"
     ) -> List[Dict[str, Any]]:
         """
         Rank learning resources for a skill based on user preferences and quality.
@@ -651,15 +1030,16 @@ class LearningService:
         ).all()
 
         if not resources:
-            return []
+            skill = db.query(Skill).filter(Skill.id == skill_id).first()
+            skill_name = skill.name if skill else f"Skill {skill_id}"
+            return LearningService._fallback_resources_for_skill(skill_id, skill_name, target_level)
 
-        # Use AI optimizer to rank resources
-        ranked_resources = LearningOptimizer.rank_resources(
-            [r.to_dict() for r in resources],
-            user_id=user_id
+        ranked_resources = LearningService._rank_resource_candidates(
+            [r.to_dict() for r in resources if r.url and str(r.url).strip()],
+            target_level
         )
 
-        return ranked_resources
+        return ranked_resources or []
 
     # --------------------------------------------------
     # UPDATE STEP PROGRESS
@@ -706,7 +1086,7 @@ class LearningService:
         db.commit()
         db.refresh(path)
 
-        return path.to_dict()
+        return LearningService._serialize_learning_path_with_resources(db, path)
 
     # --------------------------------------------------
     # TOPOLOGICAL SORT
@@ -763,7 +1143,7 @@ class LearningService:
         if not paths:
             raise ValueError("No learning paths found")
         return {
-            "paths": [p.to_dict() for p in paths],
+            "paths": [LearningService._serialize_learning_path_with_resources(db, p) for p in paths],
             "count": len(paths)
         }
 
@@ -787,7 +1167,7 @@ class LearningService:
         if not path:
             raise ValueError("Learning path not found")
         
-        return path.to_dict()
+        return LearningService._serialize_learning_path_with_resources(db, path)
 
     # --------------------------------------------------
     # COMPLETE STEP
@@ -854,7 +1234,7 @@ class LearningService:
                         db.commit()
                         print(f"[PROFILE] Updated user {user_id} current_role to '{role_title}' after completing learning path")
 
-        result = path.to_dict()
+        result = LearningService._serialize_learning_path_with_resources(db, path)
         
         # Include certificate in response if generated
         if certificate:

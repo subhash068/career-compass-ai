@@ -59,8 +59,8 @@ from routes.profile import router as profile_router
 # Create FastAPI app
 # -----------------------------
 app = FastAPI(
-    title="Career Compass AI",
-    description="AI-powered career guidance and skill analysis platform",
+    title="A Multi-Layered Skill Gap Analysis and Career Recommendation System",
+    description="A multi-layered skill gap analysis and career recommendation system",
     version="1.0.0",
 )
 

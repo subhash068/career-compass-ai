@@ -186,7 +186,7 @@ export interface CareerMatch {
 export interface LearningResource {
   id: number;
   title: string;
-  type: 'course' | 'tutorial' | 'book' | 'video' | 'project';
+  type: 'course' | 'tutorial' | 'book' | 'video' | 'project' | 'article' | 'documentation';
   provider: string;
   url: string;
   duration: string;

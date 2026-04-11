@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SkillBadge } from '@/components/ui/skill-badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { StepAssessmentModal } from '@/components/learning/StepAssessmentModal';
 import { CertificateDisplay } from '@/components/learning/CertificateDisplay';
 import { 
@@ -20,9 +19,7 @@ import {
   Loader2,
   Lock,
   Unlock,
-  PlayCircle,
   AlertCircle,
-  Trophy,
   Award,
   DollarSign,
   TrendingUp
@@ -39,15 +36,9 @@ const resourceIcons: Record<LearningResource['type'], React.ComponentType<{ clas
   book: FileText,
   video: Video,
   project: Target,
+  article: FileText,
+  documentation: FileText,
 };
-
-// Extended step type with UI state
-interface StepWithUIState extends LearningPathStep {
-  canComplete?: boolean;
-  isLocked?: boolean;
-  previousCompleted?: boolean;
-  assessmentPassed?: boolean;
-}
 
 export default function Learning() {
   const [learningPath, setLearningPath] = useState<LearningPath | null>(null);
@@ -60,6 +51,7 @@ export default function Learning() {
     previousCompleted: boolean;
     assessmentPassed: boolean;
   }>>({});
+  const [openedResourcesByStep, setOpenedResourcesByStep] = useState<Record<number, Record<string, boolean>>>({});
   
   // Certificate modal state
   const [showCertificate, setShowCertificate] = useState(false);
@@ -237,6 +229,90 @@ export default function Learning() {
       console.error('Error marking step complete:', error);
     }
   };
+
+  const getResourceProgressKey = (pathId: number) => `learning-path-resource-progress-${pathId}`;
+
+  const getResourceKey = (stepId: number, resource: LearningResource, resourceIndex: number) => {
+    return String(resource.id ?? `${stepId}-${resourceIndex}`);
+  };
+
+  const isOpenableUrl = (url?: string | null) => Boolean(url && url.trim().toLowerCase().startsWith('http'));
+
+  const markResourceOpened = (stepId: number, resourceKey: string) => {
+    setOpenedResourcesByStep(prev => ({
+      ...prev,
+      [stepId]: {
+        ...(prev[stepId] || {}),
+        [resourceKey]: true,
+      },
+    }));
+  };
+
+  const openResource = (stepId: number, resource: LearningResource, resourceIndex: number) => {
+    const url = resource.url?.trim();
+    if (!isOpenableUrl(url)) return;
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+    markResourceOpened(stepId, getResourceKey(stepId, resource, resourceIndex));
+  };
+
+  const openAllStepResources = (
+    stepId: number,
+    resources: Array<{ resource: LearningResource; resourceIndex: number }>
+  ) => {
+    const openedMap = openedResourcesByStep[stepId] || {};
+
+    resources.forEach(({ resource, resourceIndex }) => {
+      const resourceKey = getResourceKey(stepId, resource, resourceIndex);
+      if (!openedMap[resourceKey]) {
+        openResource(stepId, resource, resourceIndex);
+      }
+    });
+  };
+
+  const getStepResourceProgress = (step: LearningPathStep) => {
+    const resources = step.resources || [];
+    const openableResources = resources
+      .map((resource, resourceIndex) => ({ resource, resourceIndex }))
+      .filter(({ resource }) => isOpenableUrl(resource.url));
+    const openedMap = openedResourcesByStep[step.id] || {};
+    const openedCount = openableResources.filter(({ resource, resourceIndex }) => {
+      const resourceKey = getResourceKey(step.id, resource, resourceIndex);
+      return Boolean(openedMap[resourceKey]);
+    }).length;
+    const allResourcesOpened = openableResources.length === 0 || openedCount === openableResources.length;
+
+    return {
+      openableResources,
+      openedCount,
+      allResourcesOpened,
+    };
+  };
+
+  useEffect(() => {
+    if (!learningPath) {
+      setOpenedResourcesByStep({});
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(getResourceProgressKey(learningPath.id));
+      setOpenedResourcesByStep(stored ? JSON.parse(stored) : {});
+    } catch (error) {
+      console.warn('Failed to load learning resource progress:', error);
+      setOpenedResourcesByStep({});
+    }
+  }, [learningPath?.id]);
+
+  useEffect(() => {
+    if (!learningPath) return;
+
+    try {
+      localStorage.setItem(getResourceProgressKey(learningPath.id), JSON.stringify(openedResourcesByStep));
+    } catch (error) {
+      console.warn('Failed to persist learning resource progress:', error);
+    }
+  }, [learningPath?.id, openedResourcesByStep]);
 
   // Get role from learning path (preferred) or from selected career (fallback)
   const targetRole = learningPath?.targetRole || selectedCareer?.role;
@@ -441,9 +517,10 @@ export default function Learning() {
             
             const isFirstStep = index === 0;
             const isLocked = !isFirstStep && !status.previousCompleted;
-            const canMarkComplete = status.canComplete;
-            const showAssessmentButton = !isLocked && !step.isCompleted && !status.assessmentPassed;
-            
+            const { openableResources, openedCount, allResourcesOpened } = getStepResourceProgress(step);
+            const hasOpenableResources = openableResources.length > 0;
+            const canMarkComplete = !isLocked && !step.isCompleted && (allResourcesOpened || !hasOpenableResources);
+
             return (
               <div key={step.id} className="relative pl-14">
                 {/* Timeline node */}
@@ -495,42 +572,57 @@ export default function Learning() {
                       
                       <div className="flex items-center gap-2 flex-wrap">
                         {step.isCompleted ? (
-                          <CheckCircle2 className="w-5 h-5 text-success" />
+                          status.assessmentPassed ? (
+                            <CheckCircle2 className="w-5 h-5 text-success" />
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenAssessment(step)}
+                              className="gap-1"
+                              variant="outline"
+                            >
+                              <GraduationCap className="w-4 h-4" />
+                              Take Assessment
+                            </Button>
+                          )
                         ) : isLocked ? (
                           <div className="w-5 h-5 rounded border border-muted-foreground/30 flex items-center justify-center">
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </div>
-                        ) : step.isCompleted ? (
-                          // Step marked as done - show Take Assessment button
+                        ) : hasOpenableResources && !allResourcesOpened ? (
                           <Button
                             size="sm"
-                            onClick={() => handleOpenAssessment(step)}
+                            onClick={() => openAllStepResources(step.id, openableResources)}
                             className="gap-1"
+                            variant="outline"
                           >
-                            <GraduationCap className="w-4 h-4" />
-                            Take Assessment
+                            <ExternalLink className="w-4 h-4" />
+                            Open Links
                           </Button>
-                        ) : (
-                          // Step not started - show Start Learning button
+                        ) : canMarkComplete ? (
                           <Button
                             size="sm"
                             onClick={async () => {
-                              // Open external learning resources if available
-                              const resources = step.resources || [];
-                              if (resources.length > 0 && resources[0].url) {
-                                window.open(resources[0].url, '_blank');
-                              }
-                              // Mark step as started/in progress (same as mark complete for now)
                               try {
                                 await handleMarkComplete(step.id);
                               } catch (error) {
-                                console.error('Error starting step:', error);
+                                console.error('Error completing step:', error);
                               }
                             }}
                             className="gap-1"
                           >
-                            <PlayCircle className="w-4 h-4" />
-                            Start Learning
+                            <CheckCircle2 className="w-4 h-4" />
+                            Mark Step Complete
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => handleOpenAssessment(step)}
+                            variant="outline"
+                          >
+                            <GraduationCap className="w-4 h-4" />
+                            Take Assessment
                           </Button>
                         )}
                       </div>
@@ -557,24 +649,18 @@ export default function Learning() {
                       </div>
                     )}
                     
-                    {/* Show locked assessment message when not completed */}
-                    {!step.isCompleted && !isLocked && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
-                        <Lock className="w-4 h-4" />
-                        Complete the learning module to unlock the assessment
+                    {!isLocked && !step.isCompleted && hasOpenableResources && !allResourcesOpened && (
+                      <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg">
+                        <ExternalLink className="w-4 h-4" />
+                        Open the helpful links below before you mark this step complete.
                       </div>
                     )}
-                    
-                    {/* Show assessment button when step is completed */}
-                    {step.isCompleted && !status.assessmentPassed && !canMarkComplete && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleOpenAssessment(step)}
-                        className="gap-1 mt-2"
-                      >
-                        <GraduationCap className="w-4 h-4" />
-                        Take Assessment
-                      </Button>
+
+                    {!isLocked && !step.isCompleted && hasOpenableResources && allResourcesOpened && (
+                      <div className="flex items-center gap-2 text-sm text-success bg-success/10 p-3 rounded-lg">
+                        <CheckCircle2 className="w-4 h-4" />
+                        All helpful links are open. You can now complete this step.
+                      </div>
                     )}
                     
                     {/* Show assessment passed status */}
@@ -585,26 +671,36 @@ export default function Learning() {
                       </div>
                     )}
                     
-                    {/* Show resources even when no URL - for viewing */}
+                    {/* Helpful learning links for this step */}
                     {(step.resources || []).length > 0 && !isLocked && (
                       <div>
                         <h5 className="text-sm font-medium mb-2">Recommended Resources</h5>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          {hasOpenableResources
+                            ? `${openedCount} of ${openableResources.length} helpful links opened`
+                            : 'No openable links were found for this step'}
+                        </p>
                         <div className="space-y-2">
                           {(step.resources || []).map((resource, resourceIndex) => {
-                            const ResourceIcon = resourceIcons[resource.type];
-                            const hasUrl = resource.url && resource.url.trim() !== '';
+                            const ResourceIcon = resourceIcons[resource.type] ?? FileText;
+                            const hasUrl = isOpenableUrl(resource.url);
+                            const resourceKey = getResourceKey(step.id, resource, resourceIndex);
+                            const isOpened = Boolean(openedResourcesByStep[step.id]?.[resourceKey]);
                             return (
-                              <div 
+                              <button
+                                type="button"
                                 key={resource.id ?? `${step.id}-resource-${resourceIndex}`}
                                 className={cn(
-                                  "flex items-center justify-between p-3 rounded-lg transition-colors",
-                                  hasUrl 
-                                    ? "bg-muted/50 hover:bg-muted cursor-pointer" 
-                                    : "bg-muted/30"
+                                  "w-full flex items-center justify-between p-3 rounded-lg transition-colors text-left border",
+                                  hasUrl
+                                    ? isOpened
+                                      ? "bg-success/5 border-success/30 hover:bg-success/10"
+                                      : "bg-muted/50 border-border hover:bg-muted"
+                                    : "bg-muted/30 border-border cursor-default"
                                 )}
                                 onClick={() => {
                                   if (hasUrl) {
-                                    window.open(resource.url, '_blank');
+                                    openResource(step.id, resource, resourceIndex);
                                   }
                                 }}
                               >
@@ -626,13 +722,28 @@ export default function Learning() {
                                   </div>
                                 </div>
                                 {hasUrl ? (
-                                  <Button variant="ghost" size="icon">
-                                    <ExternalLink className="w-4 h-4" />
-                                  </Button>
+                                  <span className={cn(
+                                    "flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1",
+                                    isOpened
+                                      ? "bg-success/10 text-success"
+                                      : "bg-muted text-muted-foreground"
+                                  )}>
+                                    {isOpened ? (
+                                      <>
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        Opened
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ExternalLink className="w-3 h-3" />
+                                        Open
+                                      </>
+                                    )}
+                                  </span>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">View Only</span>
                                 )}
-                              </div>
+                              </button>
                             );
                           })}
                         </div>
