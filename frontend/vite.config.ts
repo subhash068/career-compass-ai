@@ -10,10 +10,12 @@ export default defineConfig(({ mode }) => {
     process.env.VITE_API_BASE_URL ||
     "http://127.0.0.1:8000";
 
+  const port = parseInt(process.env.PORT || "5000");
+
   return {
     server: {
       host: "0.0.0.0",
-      port: 5000,
+      port: port,
       proxy: {
         "/api": {
           target: backendTarget,
