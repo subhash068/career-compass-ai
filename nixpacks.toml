@@ -1,0 +1,16 @@
+# Force Railway to use existing Dockerfile for frontend static nginx deploy
+# No Node.js runtime, no npx needed
+
+[phases.build]
+nixPkgs = ['nodejs-20', 'nginx']
+
+[phases.setup]
+nixPkgs = ['nodejs-20']
+
+[[builds]]
+builder = "DOCKERFILE"
+
+# Or specific:
+# path = "frontend"
+# dockerfile = "frontend/Dockerfile"
+
