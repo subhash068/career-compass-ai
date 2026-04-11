@@ -10,6 +10,8 @@ RUN npm install
 COPY . .
 RUN npm run build
 
+COPY server.js .
+
 EXPOSE 80
 
-CMD ["npx", "serve", "-s", "dist", "-l", "80"]
+CMD ["node", "server.js"]

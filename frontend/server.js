@@ -1,7 +1,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { createServer: createHttp2Server } = require('http2');
 
 const PORT = process.env.PORT || 80;
 
@@ -16,14 +15,10 @@ const mimeTypes = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  '.eot': 'application/vnd.ms-fontobject',
 };
 
 const server = http.createServer((req, res) => {
-  if (req.url === '/health' || req.url === '/status' || req.url === '/') {
+  if (req.url === '/health' || req.url === '/status') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('healthy');
     return;
