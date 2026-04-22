@@ -1,8 +1,8 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "comment": "Frontend deployment switched to Vercel. Backend-only on Railway.",
   "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "./frontend/Dockerfile"
+    "builder": "NIXPACKS"
   },
   "deploy": {
     "restartPolicyType": "ON_FAILURE",

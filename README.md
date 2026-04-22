@@ -137,7 +137,7 @@ npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`.
+Frontend runs on `http://localhost:5173`.&#10;&#10;## Deployment&#10;&#10;### Vercel (Frontend - Recommended)&#10;1. Connect GitHub repo to [Vercel Dashboard](https://vercel.com)&#10;2. **Root Directory**: `./frontend/`&#10;3. **Framework**: Vite (auto)&#10;4. Build Command: `npm ci &amp;&amp; npm run build`&#10;5. Output Dir: `dist`&#10;6. **Environment Variable**: `VITE_API_BASE_URL=https://your-backend-domain.com` (current: Railway backend `https://career-compass-backend-production-162c.up.railway.app`)&#10;&#10;✅ SPA routing, caching, previews auto-configured via `vercel.json`.&#10;&#10;### Railway (Backend)&#10;Backend deploys from `./backend/` with `railway-backend.json`.&#10;Root `railway.json` now backend-only (frontend → Vercel).
 
 ## Docker Compose
 
