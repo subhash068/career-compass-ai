@@ -121,6 +121,11 @@ def register(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        print(f"[REGISTER ERROR] {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Registration failed due to a server error")
 
 
 # --------------------------------------------------

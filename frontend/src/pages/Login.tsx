@@ -126,13 +126,21 @@ export default function Login() {
         }
 
         try {
-          await authApi.register({ email, name, password });
-          toast({
-            title: "Verification Code Sent",
-            description: `A 6-digit code has been sent to ${email}.`,
-          });
-          setMode('verify');
-          setResendTimer(30);
+          const result = await authApi.register({ email, name, password });
+          if (result.requires_verification) {
+            toast({
+              title: "Verification Code Sent",
+              description: `A 6-digit code has been sent to ${email}.`,
+            });
+            setMode('verify');
+            setResendTimer(30);
+          } else {
+            toast({
+              title: "Registration Successful",
+              description: "Your account is ready. Please sign in.",
+            });
+            setMode('login');
+          }
         } catch (err: any) {
           const backendMessage =
             err?.response?.data?.detail ||

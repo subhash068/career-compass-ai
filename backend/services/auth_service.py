@@ -191,11 +191,20 @@ class AuthService:
         if existing_user:
             if not AuthService._is_truthy(existing_user.is_verified):
                 # Allow retrying registration for unverified accounts by re-sending OTP.
-                AuthService._send_verification_otp(db, email, existing_user.name or name)
+                otp_sent = True
+                try:
+                    AuthService._send_verification_otp(db, email, existing_user.name or name)
+                except Exception as exc:
+                    otp_sent = False
+                    print(f"WARNING: Failed to send verification OTP for existing user {email}: {exc}")
                 return {
-                    "message": "Account already exists but is not verified. A new verification code has been sent.",
+                    "message": (
+                        "Account already exists but is not verified. A new verification code has been sent."
+                        if otp_sent
+                        else "Account already exists but verification email could not be sent right now. You can still log in."
+                    ),
                     "user_id": existing_user.id,
-                    "requires_verification": True,
+                    "requires_verification": otp_sent,
                 }
             raise ValueError("User with this email already exists")
 
@@ -207,12 +216,21 @@ class AuthService:
         db.refresh(user)
 
         # Send OTP for email verification
-        AuthService._send_verification_otp(db, email, name)
+        otp_sent = True
+        try:
+            AuthService._send_verification_otp(db, email, name)
+        except Exception as exc:
+            otp_sent = False
+            print(f"WARNING: Failed to send verification OTP for {email}: {exc}")
 
         return {
-            "message": "Registration successful. Please check your email for verification code.",
+            "message": (
+                "Registration successful. Please check your email for verification code."
+                if otp_sent
+                else "Registration successful. Verification email is unavailable right now; you can sign in directly."
+            ),
             "user_id": user.id,
-            "requires_verification": True,
+            "requires_verification": otp_sent,
         }
 
     @staticmethod

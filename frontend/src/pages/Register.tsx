@@ -93,16 +93,23 @@ export default function Register() {
       }
 
       // Register user - will send OTP automatically
-      await authApi.register({ email, name, password });
-      
-      // Show OTP verification step
-      setOtpStep(true);
-      setResendTimer(60); // Start resend timer
-      
-      toast({
-        title: "Registration Successful",
-        description: `Verification code sent to ${email}`,
-      });
+      const result = await authApi.register({ email, name, password });
+
+      if (result.requires_verification) {
+        // Show OTP verification step when backend confirms OTP was sent.
+        setOtpStep(true);
+        setResendTimer(60);
+        toast({
+          title: "Registration Successful",
+          description: `Verification code sent to ${email}`,
+        });
+      } else {
+        toast({
+          title: "Registration Successful",
+          description: "Your account is ready. Please sign in.",
+        });
+        navigate('/login');
+      }
 
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -258,6 +265,7 @@ export default function Register() {
               <Input
                 id="name"
                 type="text"
+                autoComplete="name"
                 placeholder="Enter your full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -269,6 +277,7 @@ export default function Register() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -281,6 +290,7 @@ export default function Register() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   placeholder="Create a strong password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -363,6 +373,7 @@ export default function Register() {
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   placeholder="Confirm your password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
